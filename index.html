@@ -207,23 +207,45 @@ function loadMfgId() {
 
 // ─── Load Stocked_Material_List for cascading dropdowns ───────────────────────
 function loadStockCatalog() {
-  ZOHO.CREATOR.API.getAllRecords({
-    appName: APP_NAME,
-    reportName: 'Stocked_Material_List',
-    page: 1,
-    pageSize: 200
-  }).then(function(resp) {
-    var rows = resp.data || [];
-    console.log('Stock catalog rows:', rows.length);
-    if (rows.length > 0) {
-      console.log('Sample row keys:', Object.keys(rows[0]).join(', '));
-      console.log('Sample row:', JSON.stringify(rows[0]));
-    }
+  shapeMap = {};
+  document.getElementById('sel-shape').innerHTML = '<option value="">Loading catalog...</option>';
 
-    shapeMap = {};
+  function fetchPage(pageNum, allRows) {
+    ZOHO.CREATOR.API.getAllRecords({
+      appName: APP_NAME,
+      reportName: 'Stock_Catalog_Lookup',
+      page: pageNum,
+      pageSize: 200
+    }).then(function(resp) {
+      var rows = resp.data || [];
+      console.log('Stock catalog page ' + pageNum + ': ' + rows.length + ' rows');
+      if (pageNum === 1 && rows.length > 0) {
+        console.log('Sample row keys:', Object.keys(rows[0]).join(', '));
+        console.log('Sample row:', JSON.stringify(rows[0]));
+      }
+      allRows = allRows.concat(rows);
+      if (rows.length === 200) {
+        fetchPage(pageNum + 1, allRows);
+      } else {
+        console.log('Stock catalog total:', allRows.length, 'rows');
+        processRows(allRows);
+        buildShapeDropdown();
+      }
+    }).catch(function(e) {
+      console.error('Stock catalog page ' + pageNum + ' failed:', JSON.stringify(e));
+      if (allRows.length > 0) {
+        processRows(allRows);
+        buildShapeDropdown();
+      } else {
+        var sel = document.getElementById('sel-shape');
+        sel.innerHTML = '<option value="">Catalog error: ' + (e.code || e.message || JSON.stringify(e)).toString().substring(0, 50) + '</option>';
+        sel.disabled = false;
+      }
+    });
+  }
 
+  function processRows(rows) {
     rows.forEach(function(row) {
-      // Form_Type (Shape)
       var ft = row.Form_Type;
       var shapeId   = (ft && ft.ID) ? String(ft.ID) : (typeof ft === 'string' && ft ? ft : null);
       var shapeName = (ft && ft.zc_display_value) ? ft.zc_display_value :
@@ -231,7 +253,6 @@ function loadStockCatalog() {
                       (typeof ft === 'string' ? ft : '');
       if (!shapeId || !shapeName) return;
 
-      // Material_Type
       var mt = row.Material_Type;
       var matId   = (mt && mt.ID) ? String(mt.ID) : (typeof mt === 'string' && mt ? mt : null);
       var matName = (mt && mt.zc_display_value) ? mt.zc_display_value :
@@ -239,10 +260,8 @@ function loadStockCatalog() {
                     (typeof mt === 'string' ? mt : '');
       if (!matId || !matName) return;
 
-      // Type_Detail_LU (Spec) — try multiple field name variations
       var td = row.Type_Detail_LU || row.Type_detail_LU || row.Type_Detail || row.Spec;
-      var specId   = null;
-      var specName = '';
+      var specId = null, specName = '';
       if (td) {
         specId   = (td.ID) ? String(td.ID) : (typeof td === 'string' && td ? td : null);
         specName = (td.zc_display_value) ? td.zc_display_value :
@@ -252,19 +271,11 @@ function loadStockCatalog() {
 
       if (!shapeMap[shapeId]) shapeMap[shapeId] = { name: shapeName, materials: {} };
       if (!shapeMap[shapeId].materials[matId]) shapeMap[shapeId].materials[matId] = { name: matName, specs: {} };
-      if (specId && specName) {
-        shapeMap[shapeId].materials[matId].specs[specId] = specName;
-      }
+      if (specId && specName) shapeMap[shapeId].materials[matId].specs[specId] = specName;
     });
+  }
 
-    buildShapeDropdown();
-
-  }).catch(function(e) {
-    console.error('Stock catalog failed:', JSON.stringify(e));
-    var sel = document.getElementById('sel-shape');
-    sel.innerHTML = '<option value="">Catalog error: ' + (e.code || e.message || JSON.stringify(e)).toString().substring(0, 50) + '</option>';
-    sel.disabled = false;
-  });
+  fetchPage(1, []);
 }
 
 // ─── Cascading dropdowns ──────────────────────────────────────────────────────

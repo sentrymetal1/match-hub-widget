@@ -182,27 +182,46 @@ ZOHO.CREATOR.init().then(function() {
 
 // ─── MFG identity ─────────────────────────────────────────────────────────────
 function loadMfgId() {
-  ZOHO.CREATOR.API.getAllRecords({
-    appName: APP_NAME,
-    reportName: 'Customer_Entry_Report',
-    criteria: '(Account_User_Email contains zoho.loginuserid)'
-  }).then(function(resp) {
-    var records = resp.data || [];
-    var mfg = records.find(function(r) {
-      return r.Registered === 'YES' &&
-        (r.Select_Account_Type === 'Manufacture' || r.Type_Of_Account === 'Admin');
-    }) || records.find(function(r) { return r.Registered === 'YES'; }) || records[0];
-
-    if (mfg) {
-      mfgId = mfg.ID;
-      document.getElementById('mfg-label').textContent = mfg.Company_Name || mfgId;
-    } else {
-      document.getElementById('mfg-label').textContent = 'No MFG found';
+  // 1. Try getQueryParams (button-triggered widget params)
+  try {
+    var params = ZOHO.CREATOR.UTIL.getQueryParams();
+    console.log('Page params:', JSON.stringify(params));
+    if (params && params.Manufacture_ID) {
+      mfgId = String(params.Manufacture_ID);
+      document.getElementById('mfg-label').textContent = 'MFG: ' + mfgId;
+      return;
     }
-  }).catch(function(e) {
-    console.error('MFG load failed:', JSON.stringify(e));
-    document.getElementById('mfg-label').textContent = 'MFG err: ' + (e.code || e.message || JSON.stringify(e)).toString().substring(0, 60);
-  });
+  } catch(e) {
+    console.warn('getQueryParams failed:', e);
+  }
+
+  // 2. Try parent page URL (page reloaded with ?Manufacture_ID=XXXXX)
+  try {
+    var href = window.parent.location.href;
+    console.log('Parent URL:', href);
+    var match = href.match(/[?&]Manufacture_ID=([^&]+)/);
+    if (match && match[1]) {
+      mfgId = match[1];
+      document.getElementById('mfg-label').textContent = 'MFG: ' + mfgId;
+      return;
+    }
+  } catch(e) {
+    console.warn('Parent URL read failed:', e);
+  }
+
+  // 3. Try current widget URL
+  try {
+    var selfHref = window.location.href;
+    var selfMatch = selfHref.match(/[?&]Manufacture_ID=([^&]+)/);
+    if (selfMatch && selfMatch[1]) {
+      mfgId = selfMatch[1];
+      document.getElementById('mfg-label').textContent = 'MFG: ' + mfgId;
+      return;
+    }
+  } catch(e) {}
+
+  document.getElementById('mfg-label').textContent = 'No MFG ID';
+  console.warn('Could not find Manufacture_ID in any source');
 }
 
 // ─── Load Stocked_Material_List for cascading dropdowns ───────────────────────

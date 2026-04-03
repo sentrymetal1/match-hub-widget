@@ -253,8 +253,8 @@ async function loadMfgId() {
       document.getElementById('mfg-label').textContent = 'No MFG record found';
     }
   } catch (e) {
-    console.error('MFG load failed', e);
-    document.getElementById('mfg-label').textContent = 'Load error';
+    console.error('MFG load failed:', JSON.stringify(e), e.message, e.code);
+    document.getElementById('mfg-label').textContent = 'Err: ' + (e.message||e.code||JSON.stringify(e));
   }
 }
 
@@ -321,7 +321,7 @@ async function loadDropdownData() {
 
     buildShapeDropdown();
   } catch (e) {
-    console.error('Dropdown load failed:', e);
+    console.error('Dropdown load failed:', JSON.stringify(e), e.message, e.code);
     // Fall back — enable search without filters
     const shapeSel = document.getElementById('sel-shape');
     shapeSel.innerHTML = '<option value="">All shapes (load failed)</option>';

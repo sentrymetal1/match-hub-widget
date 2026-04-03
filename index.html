@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Match Hub</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: #f5f6f8; color: #1a1a1a; font-size: 13px; }
+
+  .mc-header {
+    background: linear-gradient(135deg, #5F94CE, #3a6ea8);
+    color: white;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .mc-header h2 { font-size: 14px; font-weight: 600; letter-spacing: 0.5px; }
+  .mc-header span { font-size: 11px; opacity: 0.8; }
+
+  .filters { background: #fff; border-bottom: 1px solid #e0e4ea; padding: 12px 16px; }
+  .filter-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 8px; }
+  .filter-group { display: flex; flex-direction: column; gap: 3px; }
+  .filter-group label { font-size: 11px; color: #666; font-weight: 500; }
+  .filter-group select, .filter-group input[type=range] { height: 30px; border: 1px solid #cdd2da; border-radius: 4px; padding: 0 8px; font-size: 12px; background: #fff; color: #1a1a1a; }
+  .filter-group select { min-width: 130px; }
+  .filter-group select:disabled { background: #f5f6f8; color: #aaa; }
+  .radius-display { font-size: 12px; font-weight: 600; color: #5F94CE; min-width: 50px; }
+
+  .filter-toggles { display: flex; gap: 8px; flex-wrap: wrap; }
+  .toggle-section { background: #f8f9fb; border: 1px solid #e0e4ea; border-radius: 6px; padding: 8px 12px; flex: 1; min-width: 200px; }
+  .toggle-section h4 { font-size: 11px; color: #5F94CE; font-weight: 600; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.4px; }
+  .checkbox-grid { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+  .checkbox-grid label { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #444; cursor: pointer; white-space: nowrap; }
+  .checkbox-grid input[type=checkbox] { width: 12px; height: 12px; accent-color: #5F94CE; }
+
+  .search-btn {
+    background: #5F94CE;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 0 18px;
+    height: 30px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    align-self: flex-end;
+  }
+  .search-btn:hover { background: #4a7eb5; }
+  .search-btn:disabled { background: #a0b8d5; cursor: not-allowed; }
+
+  .dropdown-loading { font-size: 11px; color: #888; font-style: italic; padding: 4px 0; }
+
+  .results-area { padding: 12px 16px; }
+  .results-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .results-count { font-size: 12px; color: #666; }
+  .sort-sel { font-size: 11px; border: 1px solid #cdd2da; border-radius: 4px; padding: 3px 6px; color: #444; }
+
+  .result-card {
+    background: #fff;
+    border: 1px solid #e0e4ea;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    transition: box-shadow 0.15s;
+  }
+  .result-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+
+  .score-ring { flex-shrink: 0; width: 48px; height: 48px; }
+  .score-ring svg { width: 48px; height: 48px; }
+
+  .card-info { flex: 1; min-width: 0; }
+  .card-name { font-size: 14px; font-weight: 600; color: #1a1a1a; }
+  .card-sub { font-size: 11px; color: #888; margin-top: 2px; }
+  .card-pills { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
+  .pill {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .pill-blue   { background: #E6F1FB; color: #185FA5; }
+  .pill-green  { background: #EAF3DE; color: #3B6D11; }
+  .pill-amber  { background: #FAEEDA; color: #854F0B; }
+  .pill-teal   { background: #E1F5EE; color: #085041; }
+  .pill-gray   { background: #f0f1f3; color: #666; }
+  .pill-purple { background: #EEEDFE; color: #3C3489; }
+
+  .card-breakdown {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+    background: #f8f9fb;
+    border-radius: 4px;
+    padding: 6px 10px;
+  }
+  .bd-item { text-align: center; }
+  .bd-val { font-size: 12px; font-weight: 600; }
+  .bd-lbl { font-size: 10px; color: #888; }
+
+  .card-actions { flex-shrink: 0; display: flex; flex-direction: column; gap: 5px; }
+  .btn-action {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 5px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    border: 1px solid #cdd2da;
+    background: #fff;
+    color: #1a1a1a;
+  }
+  .btn-action.primary { background: #5F94CE; color: #fff; border-color: #5F94CE; }
+  .btn-action.primary:hover { background: #4a7eb5; }
+
+  .status-msg { text-align: center; padding: 30px; color: #888; font-size: 13px; }
+  .loading-dots::after { content: '...'; animation: dots 1.2s steps(4, end) infinite; }
+  @keyframes dots { 0%, 20% { content: ''; } 40% { content: '.'; } 60% { content: '..'; } 80%, 100% { content: '...'; } }
+</style>
+</head>
+<body>
+
+<div class="mc-header">
+  <h2>Match Hub — AI Supplier Suggestions</h2>
+  <span id="mfg-label">Loading...</span>
+</div>
+
+<div class="filters">
+  <div class="filter-row">
+    <div class="filter-group">
+      <label>Radius</label>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="range" id="radius" min="25" max="500" step="25" value="150" style="width:120px;height:auto;border:none;padding:0">
+        <span class="radius-display" id="radius-val">150 mi</span>
+      </div>
+    </div>
+    <div class="filter-group">
+      <label>Shape</label>
+      <select id="sel-shape" disabled><option value="">Loading...</option></select>
+    </div>
+    <div class="filter-group">
+      <label>Material</label>
+      <select id="sel-material" disabled><option value="">— select shape first —</option></select>
+    </div>
+    <div class="filter-group">
+      <label>Spec</label>
+      <select id="sel-spec" disabled><option value="">— select material first —</option></select>
+    </div>
+    <button class="search-btn" id="search-btn" onclick="runSearch()">Search</button>
+  </div>
+
+  <div class="filter-toggles">
+    <div class="toggle-section">
+      <h4>Capabilities</h4>
+      <div class="checkbox-grid" id="cap-filters">
+        <label><input type="checkbox" value="WELDING - Mig"> Welding — MIG</label>
+        <label><input type="checkbox" value="WELDING - Tig"> Welding — TIG</label>
+        <label><input type="checkbox" value="WELDING - Stick"> Welding — Stick</label>
+        <label><input type="checkbox" value="WELDING - Laser"> Welding — Laser</label>
+        <label><input type="checkbox" value="CUTTING - Plasma"> Plasma cutting</label>
+        <label><input type="checkbox" value="CUTTING - Laser"> Laser cutting</label>
+        <label><input type="checkbox" value="CUTTING - Waterjet"> Waterjet</label>
+        <label><input type="checkbox" value="SAWING - Band Saw"> Band saw</label>
+        <label><input type="checkbox" value="SAWING - Cold Saw"> Cold saw</label>
+        <label><input type="checkbox" value="Straightening"> Straightening</label>
+        <label><input type="checkbox" value="Shearing"> Shearing</label>
+        <label><input type="checkbox" value="Press Brake"> Press brake</label>
+        <label><input type="checkbox" value="ROLLING - Plate"> Rolling — plate</label>
+        <label><input type="checkbox" value="Drilling"> Drilling</label>
+        <label><input type="checkbox" value="MACHINING - CNC"> CNC machining</label>
+        <label><input type="checkbox" value="Punching"> Punching</label>
+      </div>
+    </div>
+    <div class="toggle-section">
+      <h4>Disadvantage &amp; Minority</h4>
+      <div class="checkbox-grid" id="qual-filters">
+        <label><input type="checkbox" value="WBE - Women Business Enterprise"> WBE</label>
+        <label><input type="checkbox" value="MBE - Minority Business Enterprise"> MBE</label>
+        <label><input type="checkbox" value="VBE - Veteran Business Enterprise"> VBE</label>
+        <label><input type="checkbox" value="DVBE - Disabled Veteran Business Enterprise"> DVBE</label>
+        <label><input type="checkbox" value="DBE - Disadvantaged Business Enterprise"> DBE</label>
+        <label><input type="checkbox" value="SBE - Small Business Enterprise"> SBE</label>
+        <label><input type="checkbox" value="HUBZone - Historically Underutilized Business Zone"> HUBZone</label>
+        <label><input type="checkbox" value="8(a) - SBA 8(a) Program"> 8(a)</label>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="results-area">
+  <div class="results-header" id="results-header" style="display:none">
+    <div class="results-count" id="results-count"></div>
+    <select class="sort-sel" id="sort-sel" onchange="sortAndRender()">
+      <option value="score">Sort: AI match score</option>
+      <option value="distance">Sort: Distance</option>
+      <option value="stock">Sort: Stock match</option>
+    </select>
+  </div>
+  <div id="results-list">
+    <div class="status-msg">Enter your search criteria and click Search.</div>
+  </div>
+</div>
+
+<script src="https://js.zohocdn.com/widgetsdk/1.1/zoho_creator_widgets.min.js"></script>
+<script>
+const RAILWAY  = 'https://material-compass-nesting-app-production.up.railway.app';
+const APP_NAME = 'type-formsheet-2-18-21';
+
+let mfgId = null;
+let allResults = [];
+let supplierQualMap = {};
+
+// Cascading dropdown data — loaded from Zoho, keyed by ID
+// Structure: formTypes[]  → { id, name }
+//            materialMap  → { formTypeId: [ { id, name } ] }
+//            specMap      → { materialTypeId: [ { id, name } ] }
+let formTypes   = [];
+let materialMap = {};   // formTypeId  → [{id, name}]
+let specMap     = {};   // materialId  (Type_Detail_LU parent) → [{id, name}]
+
+// ─── Init ────────────────────────────────────────────────────────────────────
+ZOHO.CREATOR.init().then(() => {
+  Promise.all([ loadMfgId(), loadDropdownData() ]);
+}).catch(e => {
+  console.error('ZOHO init failed', e);
+  document.getElementById('mfg-label').textContent = 'Init error';
+});
+
+// ─── MFG identity ────────────────────────────────────────────────────────────
+async function loadMfgId() {
+  try {
+    const resp = await ZOHO.CREATOR.API.getAllRecords({
+      appName: APP_NAME,
+      reportName: 'Customer_Entry_Report',
+      criteria: '(Account_User_Email contains zoho.loginuserid)'
+    });
+    const records = resp.data || [];
+    const mfg = records.find(r =>
+      r.Registered === 'YES' &&
+      (r.Select_Account_Type === 'Manufacture' || r.Type_Of_Account === 'Admin')
+    ) || records.find(r => r.Registered === 'YES') || records[0];
+
+    if (mfg) {
+      mfgId = mfg.ID;
+      document.getElementById('mfg-label').textContent = mfg.Company_Name || mfgId;
+    } else {
+      document.getElementById('mfg-label').textContent = 'No MFG record found';
+    }
+  } catch (e) {
+    console.error('MFG load failed', e);
+    document.getElementById('mfg-label').textContent = 'Load error';
+  }
+}
+
+// ─── Load Shape / Material / Spec from Zoho ──────────────────────────────────
+// Reports used:
+//   All_Form_Types          → Shape dropdown   (Form_Type)
+//   All_Material_Types      → Material dropdown (Material_Type, filtered by Form_Type)
+//   All_Type_Details_Report → Spec dropdown    (Type_Detail_LU, filtered by Material_Type)
+//
+// Each record is expected to carry its own ID plus a lookup ID for its parent.
+// Field names confirmed from existing Zoho Creator reports in this app.
+//
+async function loadDropdownData() {
+  try {
+    // 1. Form Types (Shapes)
+    const ftResp = await ZOHO.CREATOR.API.getAllRecords({
+      appName: APP_NAME,
+      reportName: 'All_Form_Types',
+    });
+    formTypes = (ftResp.data || [])
+      .map(r => ({ id: r.ID, name: r.Form_Type || r.zc_display_value || r.Name || '' }))
+      .filter(r => r.id && r.name)
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    // 2. Material Types — load all, then group by Form_Type parent ID
+    const mtResp = await ZOHO.CREATOR.API.getAllRecords({
+      appName: APP_NAME,
+      reportName: 'All_Material_Types',
+    });
+    materialMap = {};
+    for (const r of (mtResp.data || [])) {
+      // Parent form type ID — may be a lookup object or direct ID field
+      const parentId = r.Form_Type?.ID || r.Form_Type_LU?.ID || r.Form_Type_ID || r.Form_Type;
+      const matId    = r.ID;
+      const matName  = r.Material_Type || r.zc_display_value || r.Name || '';
+      if (!parentId || !matId || !matName) continue;
+      const pid = String(parentId);
+      if (!materialMap[pid]) materialMap[pid] = [];
+      materialMap[pid].push({ id: matId, name: matName });
+    }
+    // Sort each group
+    for (const k of Object.keys(materialMap)) {
+      materialMap[k].sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    // 3. Type Details (Specs) — load all, group by Material_Type parent ID
+    const tdResp = await ZOHO.CREATOR.API.getAllRecords({
+      appName: APP_NAME,
+      reportName: 'All_Type_Details_Report',
+    });
+    specMap = {};
+    for (const r of (tdResp.data || [])) {
+      const parentId = r.Material_Type?.ID || r.Material_Type_LU?.ID || r.Material_Type_ID || r.Material_Type;
+      const specId   = r.ID;
+      const specName = r.Type_Detail || r.Spec || r.zc_display_value || r.Name || '';
+      if (!parentId || !specId || !specName) continue;
+      const pid = String(parentId);
+      if (!specMap[pid]) specMap[pid] = [];
+      specMap[pid].push({ id: specId, name: specName });
+    }
+    for (const k of Object.keys(specMap)) {
+      specMap[k].sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    buildShapeDropdown();
+  } catch (e) {
+    console.error('Dropdown load failed:', e);
+    // Fall back — enable search without filters
+    const shapeSel = document.getElementById('sel-shape');
+    shapeSel.innerHTML = '<option value="">All shapes (load failed)</option>';
+    shapeSel.disabled = false;
+  }
+}
+
+// ─── Build cascading dropdowns ────────────────────────────────────────────────
+function buildShapeDropdown() {
+  const sel = document.getElementById('sel-shape');
+  sel.innerHTML = '<option value="">All shapes</option>';
+  for (const ft of formTypes) {
+    const opt = document.createElement('option');
+    opt.value = ft.id;          // ← Zoho ID sent to Railway
+    opt.textContent = ft.name;
+    sel.appendChild(opt);
+  }
+  sel.disabled = false;
+
+  sel.addEventListener('change', onShapeChange);
+  document.getElementById('sel-material').addEventListener('change', onMaterialChange);
+  document.getElementById('radius').addEventListener('input', e => {
+    document.getElementById('radius-val').textContent = e.target.value + ' mi';
+  });
+}
+
+function onShapeChange() {
+  const shapeId = document.getElementById('sel-shape').value;
+  const matSel  = document.getElementById('sel-material');
+  const specSel = document.getElementById('sel-spec');
+
+  matSel.innerHTML = '<option value="">All materials</option>';
+  specSel.innerHTML = '<option value="">All specs</option>';
+  specSel.disabled = true;
+
+  if (!shapeId) {
+    matSel.disabled = true;
+    return;
+  }
+
+  const mats = materialMap[shapeId] || [];
+  if (mats.length === 0) {
+    matSel.innerHTML = '<option value="">No materials found</option>';
+    matSel.disabled = true;
+    return;
+  }
+
+  matSel.disabled = false;
+  for (const m of mats) {
+    const opt = document.createElement('option');
+    opt.value = m.id;           // ← Zoho ID sent to Railway
+    opt.textContent = m.name;
+    matSel.appendChild(opt);
+  }
+}
+
+function onMaterialChange() {
+  const matId  = document.getElementById('sel-material').value;
+  const specSel = document.getElementById('sel-spec');
+
+  specSel.innerHTML = '<option value="">All specs</option>';
+
+  if (!matId) {
+    specSel.disabled = true;
+    return;
+  }
+
+  const specs = specMap[matId] || [];
+  if (specs.length === 0) {
+    specSel.innerHTML = '<option value="">No specs found</option>';
+    specSel.disabled = true;
+    return;
+  }
+
+  specSel.disabled = false;
+  for (const s of specs) {
+    const opt = document.createElement('option');
+    opt.value = s.id;           // ← Zoho ID sent to Railway
+    opt.textContent = s.name;
+    specSel.appendChild(opt);
+  }
+}
+
+// ─── Search ──────────────────────────────────────────────────────────────────
+async function runSearch() {
+  if (!mfgId) { alert('MFG ID not loaded yet. Please wait.'); return; }
+  const btn = document.getElementById('search-btn');
+  btn.disabled = true;
+  btn.textContent = 'Searching...';
+  document.getElementById('results-list').innerHTML = '<div class="status-msg"><span class="loading-dots">Searching</span></div>';
+  document.getElementById('results-header').style.display = 'none';
+
+  const radius  = document.getElementById('radius').value;
+  const shapeId = document.getElementById('sel-shape').value;   // Zoho ID or ''
+  const matId   = document.getElementById('sel-material').value; // Zoho ID or ''
+  const specId  = document.getElementById('sel-spec').value;     // Zoho ID or ''
+
+  try {
+    await loadSupplierQualifications();
+
+    // Pass IDs directly — Railway scoreMatch now compares IDs, not text
+    const params = new URLSearchParams({ mfg_id: mfgId, radius });
+    if (shapeId) params.append('shape',    shapeId);
+    if (matId)   params.append('material', matId);
+    if (specId)  params.append('spec',     specId);
+
+    const resp = await fetch(`${RAILWAY}/api/match-suggestions?${params}`);
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.error || `HTTP ${resp.status}`);
+    }
+    const data = await resp.json();
+    allResults = data.results || [];
+
+    applyFiltersAndRender();
+  } catch (e) {
+    console.error('Search error:', e);
+    document.getElementById('results-list').innerHTML =
+      `<div class="status-msg">Search failed: ${e.message}</div>`;
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Search';
+}
+
+// ─── Qualifications (Disadvantage / Minority) ─────────────────────────────────
+async function loadSupplierQualifications() {
+  try {
+    const resp = await ZOHO.CREATOR.API.getAllRecords({
+      appName: APP_NAME,
+      reportName: 'Disadvantage_Minority_per_Supplier_Report'
+    });
+    supplierQualMap = {};
+    for (const rec of (resp.data || [])) {
+      const supId = rec.SUPPLIER?.ID || rec.SUPPLIER;
+      const qual  = rec['Disadvantage / Minority Business Status'] ||
+                    rec.Disadvantage_Minority_Business_Status || '';
+      if (supId) {
+        if (!supplierQualMap[supId]) supplierQualMap[supId] = [];
+        supplierQualMap[supId].push(qual);
+      }
+    }
+  } catch (e) {
+    console.warn('Could not load qualifications:', e);
+  }
+}
+
+// ─── Filter + Sort + Render ──────────────────────────────────────────────────
+function getChecked(containerId) {
+  return Array.from(
+    document.querySelectorAll(`#${containerId} input[type=checkbox]:checked`)
+  ).map(cb => cb.value);
+}
+
+function applyFiltersAndRender() {
+  const reqCaps  = getChecked('cap-filters');
+  const reqQuals = getChecked('qual-filters');
+
+  let filtered = allResults.filter(sup => {
+    if (reqCaps.length > 0 && sup.capCount === 0) return false;
+    if (reqQuals.length > 0) {
+      const supQuals = supplierQualMap[sup.id] || [];
+      const hasAll = reqQuals.every(q =>
+        supQuals.some(sq =>
+          sq.toLowerCase().includes(q.split(' - ')[0].toLowerCase())
+        )
+      );
+      if (!hasAll) return false;
+    }
+    return true;
+  });
+
+  allResults._filtered = filtered;
+  sortAndRender(filtered);
+}
+
+function sortAndRender(results) {
+  const data   = results || allResults._filtered || allResults;
+  const sort   = document.getElementById('sort-sel').value;
+  const sorted = [...data].sort((a, b) => {
+    if (sort === 'distance') return a.distanceMi - b.distanceMi;
+    if (sort === 'stock')    return b.breakdown.stockMatch - a.breakdown.stockMatch;
+    return b.score - a.score;
+  });
+
+  const header = document.getElementById('results-header');
+  const count  = document.getElementById('results-count');
+  const list   = document.getElementById('results-list');
+
+  if (sorted.length === 0) {
+    header.style.display = 'none';
+    list.innerHTML = '<div class="status-msg">No suppliers found matching your criteria.</div>';
+    return;
+  }
+
+  header.style.display = 'flex';
+  count.textContent = sorted.length + ' supplier' + (sorted.length !== 1 ? 's' : '') + ' found';
+
+  list.innerHTML = sorted.map(sup => {
+    const score      = sup.score || 0;
+    const scoreColor = score >= 60 ? '#1D9E75' : score >= 30 ? '#EF9F27' : '#E24B4A';
+    const circumference = 2 * Math.PI * 18;
+    const dash = (score / 100) * circumference;
+    const gap  = circumference - dash;
+
+    const supQuals  = supplierQualMap[sup.id] || [];
+    const qualPills = supQuals
+      .filter(q => q && q !== 'Not Applicable')
+      .map(q => `<span class="pill pill-purple">${q.split(' - ')[0]}</span>`)
+      .join('');
+
+    const distColor  = sup.distanceMi < 50 ? '#1D9E75' : sup.distanceMi < 100 ? '#EF9F27' : '#888';
+    const stockColor = sup.breakdown.stockMatch > 0 ? '#1D9E75' : '#888';
+
+    return `
+    <div class="result-card">
+      <div class="score-ring">
+        <svg viewBox="0 0 48 48">
+          <circle cx="24" cy="24" r="18" fill="none" stroke="#e8eaed" stroke-width="4"/>
+          <circle cx="24" cy="24" r="18" fill="none" stroke="${scoreColor}" stroke-width="4"
+            stroke-dasharray="${dash.toFixed(1)} ${gap.toFixed(1)}"
+            stroke-linecap="round" transform="rotate(-90 24 24)"/>
+          <text x="24" y="28" text-anchor="middle" font-size="10" font-weight="600"
+            fill="${scoreColor}" font-family="DM Sans, sans-serif">${score}%</text>
+        </svg>
+      </div>
+      <div class="card-info">
+        <div class="card-name">${sup.name || 'Unknown'}</div>
+        <div class="card-sub">
+          ${sup.address?.district_city || ''}, ${sup.address?.state_province || ''}
+          &nbsp;·&nbsp; ${sup.distanceMi} mi away
+          &nbsp;·&nbsp; ${sup.stockCount} stocked specs
+          &nbsp;·&nbsp; ${sup.capCount} capabilities
+        </div>
+        <div class="card-pills">
+          ${sup.breakdown.stockMatch > 0
+            ? `<span class="pill pill-green">Stock match ${sup.breakdown.stockMatch}%</span>`
+            : '<span class="pill pill-gray">No stock data</span>'}
+          ${sup.capCount > 0 ? `<span class="pill pill-blue">${sup.capCount} capabilities</span>` : ''}
+          ${qualPills}
+          ${sup.distanceMi < 25 ? '<span class="pill pill-teal">Local</span>' : ''}
+        </div>
+        <div class="card-breakdown">
+          <div class="bd-item">
+            <div class="bd-val" style="color:${stockColor}">${sup.breakdown.stockMatch}%</div>
+            <div class="bd-lbl">Stock</div>
+          </div>
+          <div class="bd-item">
+            <div class="bd-val" style="color:#5F94CE">${sup.breakdown.capabilities}%</div>
+            <div class="bd-lbl">Capabilities</div>
+          </div>
+          <div class="bd-item">
+            <div class="bd-val" style="color:${distColor}">${sup.breakdown.distance}%</div>
+            <div class="bd-lbl">Distance</div>
+          </div>
+          <div class="bd-item">
+            <div class="bd-val" style="color:#888">${sup.breakdown.history}%</div>
+            <div class="bd-lbl">History</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-actions">
+        <button class="btn-action primary" onclick="openMatchEdit('${sup.id}')">Edit match</button>
+        <button class="btn-action" onclick="copyEmail('${sup.email || ''}')">Copy email</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── Actions ─────────────────────────────────────────────────────────────────
+function openMatchEdit(supplierId) {
+  const url = `https://customer.materialcompassportal.com/Pages/Manufacture_Supplier_Match_Status?tab=tab2&supplier=${supplierId}`;
+  window.open(url, '_blank');
+}
+
+function copyEmail(email) {
+  if (!email) return;
+  navigator.clipboard.writeText(email)
+    .then(() => alert('Email copied: ' + email))
+    .catch(() => prompt('Copy this email:', email));
+}
+</script>
+</body>
+</html>

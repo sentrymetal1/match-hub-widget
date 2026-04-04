@@ -470,10 +470,10 @@ function applyFiltersAndRender() {
       var supQuals = supplierQualMap[sup.id] || [];
       // Match by abbreviation prefix — e.g. 'VBE' matches 'VBE - Veteran Business Enterprise'
       var hasAny = reqQuals.some(function(q) {
+        var qStr = String(q || '').toUpperCase();
         return supQuals.some(function(sq) {
-          var sqUpper = sq.toUpperCase();
-          var qUpper = q.toUpperCase();
-          return sqUpper === qUpper || sqUpper.indexOf(qUpper + ' ') === 0 || sqUpper.indexOf(qUpper + '-') === 0;
+          var sqUpper = String(sq || '').toUpperCase();
+          return sqUpper === qStr || sqUpper.indexOf(qStr + ' ') === 0 || sqUpper.indexOf(qStr + '-') === 0 || sqUpper.indexOf(qStr) !== -1;
         });
       });
       if (!hasAny) return false;

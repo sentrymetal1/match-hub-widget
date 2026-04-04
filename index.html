@@ -517,7 +517,7 @@ function sortAndRender(results) {
     var supQuals  = supplierQualMap[sup.id] || [];
     var qualPills = supQuals
       .filter(function(q) { return q && q !== 'Not Applicable'; })
-      .map(function(q) { return '<span class="pill pill-purple">' + q.split(' - ')[0] + '</span>'; })
+      .map(function(q) { var qs = String(q || ''); return '<span class="pill pill-purple">' + qs.split(' - ')[0] + '</span>'; })
       .join('');
 
     var distColor  = sup.distanceMi < 50 ? '#1D9E75' : sup.distanceMi < 100 ? '#EF9F27' : '#888';

@@ -461,10 +461,31 @@ function applyFiltersAndRender() {
   sortAndRender(filtered);
 }
 
+function hasQualMatch(sup) {
+  var reqQuals = getChecked('qual-filters');
+  if (reqQuals.length === 0) return false;
+  var supQuals = supplierQualMap[sup.id] || [];
+  return reqQuals.some(function(q) {
+    var qStr = String(q || '').toUpperCase();
+    return supQuals.some(function(sq) {
+      var sqUpper = String(sq || '').toUpperCase();
+      return sqUpper === qStr || sqUpper.indexOf(qStr + ' ') === 0 || sqUpper.indexOf(qStr + '-') === 0 || sqUpper.indexOf(qStr) !== -1;
+    });
+  });
+}
+
 function sortAndRender(results) {
-  var data   = results || allResults._filtered || allResults;
-  var sort   = document.getElementById('sort-sel').value;
-  var sorted = data.slice().sort(function(a, b) {
+  var data    = results || allResults._filtered || allResults;
+  var sort    = document.getElementById('sort-sel').value;
+  var reqQuals = getChecked('qual-filters');
+  var sorted  = data.slice().sort(function(a, b) {
+    // If quals are selected: matching suppliers always sort above non-matching
+    if (reqQuals.length > 0) {
+      var aMatch = hasQualMatch(a) ? 1 : 0;
+      var bMatch = hasQualMatch(b) ? 1 : 0;
+      if (bMatch !== aMatch) return bMatch - aMatch;
+    }
+    // Within each qual group (or when no quals selected): sort by chosen criteria
     if (sort === 'distance') return a.distanceMi - b.distanceMi;
     if (sort === 'stock')    return b.breakdown.stockMatch - a.breakdown.stockMatch;
     return b.score - a.score;

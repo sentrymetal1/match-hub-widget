@@ -427,13 +427,20 @@ function loadSupplierQualifications() {
   }).then(function(resp) {
     supplierQualMap = {};
     (resp.data || []).forEach(function(rec) {
-      var supId = (rec.SUPPLIER && rec.SUPPLIER.ID) ? rec.SUPPLIER.ID : rec.SUPPLIER;
-      var qual  = rec['Disadvantage / Minority Business Status'] || rec.Disadvantage_Minority_Business_Status || '';
-      if (supId) {
+      // SUPPLIER field is a lookup object
+      var supId = (rec.SUPPLIER && rec.SUPPLIER.ID) ? rec.SUPPLIER.ID :
+                  (typeof rec.SUPPLIER === 'string' ? rec.SUPPLIER : null);
+      // Try both field link name and display name variations
+      var qual = rec.Disadvantage_Minority_Business_Status ||
+                 rec['Disadvantage / Minority Business Status'] ||
+                 rec['Disadvantage_Minority_Businesses'] || '';
+      console.log('Qual record — supId:', supId, '| qual:', qual);
+      if (supId && qual && qual !== 'Not Applicable') {
         if (!supplierQualMap[supId]) supplierQualMap[supId] = [];
         supplierQualMap[supId].push(qual);
       }
     });
+    console.log('supplierQualMap:', JSON.stringify(supplierQualMap));
   }).catch(function(e) {
     console.warn('Qualifications load failed:', e);
     return Promise.resolve();
@@ -461,8 +468,13 @@ function applyFiltersAndRender() {
     // Disadvantage & Minority — OR logic: supplier must have ANY checked qualification
     if (reqQuals.length > 0) {
       var supQuals = supplierQualMap[sup.id] || [];
+      // Match by abbreviation prefix — e.g. 'VBE' matches 'VBE - Veteran Business Enterprise'
       var hasAny = reqQuals.some(function(q) {
-        return supQuals.some(function(sq) { return sq.toLowerCase().indexOf(q.toLowerCase()) !== -1; });
+        return supQuals.some(function(sq) {
+          var sqUpper = sq.toUpperCase();
+          var qUpper = q.toUpperCase();
+          return sqUpper === qUpper || sqUpper.indexOf(qUpper + ' ') === 0 || sqUpper.indexOf(qUpper + '-') === 0;
+        });
       });
       if (!hasAny) return false;
     }

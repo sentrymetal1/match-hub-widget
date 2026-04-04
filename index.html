@@ -431,9 +431,13 @@ function loadSupplierQualifications() {
       var supId = (rec.SUPPLIER && rec.SUPPLIER.ID) ? rec.SUPPLIER.ID :
                   (typeof rec.SUPPLIER === 'string' ? rec.SUPPLIER : null);
       // Try both field link name and display name variations
-      var qual = rec.Disadvantage_Minority_Business_Status ||
-                 rec['Disadvantage / Minority Business Status'] ||
-                 rec['Disadvantage_Minority_Businesses'] || '';
+      // Field returns as a lookup object — extract display_value
+      var qualRaw = rec.Disadvantage_Minority_Business_Status ||
+                    rec['Disadvantage / Minority Business Status'] ||
+                    rec['Disadvantage_Minority_Businesses'] || '';
+      var qual = (qualRaw && typeof qualRaw === 'object')
+                 ? (qualRaw.zc_display_value || qualRaw.display_value || qualRaw.Description || '')
+                 : String(qualRaw || '');
       console.log('Qual record — supId:', supId, '| qual:', qual);
       if (supId && qual && qual !== 'Not Applicable') {
         if (!supplierQualMap[supId]) supplierQualMap[supId] = [];
@@ -550,7 +554,7 @@ function sortAndRender(results) {
         '</div>' +
         '<div class="card-breakdown">' +
           '<div class="bd-item"><div class="bd-val" style="color:' + stockColor + '">' + sup.breakdown.stockMatch + '%</div><div class="bd-lbl">Stock</div></div>' +
-          '<div class="bd-item"><div class="bd-val" style="color:#5F94CE">' + sup.breakdown.capabilities + '%</div><div class="bd-lbl">Capabilities</div></div>' +
+
           '<div class="bd-item"><div class="bd-val" style="color:' + distColor + '">' + sup.breakdown.distance + '%</div><div class="bd-lbl">Distance</div></div>' +
           '<div class="bd-item"><div class="bd-val" style="color:#888">' + sup.breakdown.history + '%</div><div class="bd-lbl">History</div></div>' +
         '</div>' +

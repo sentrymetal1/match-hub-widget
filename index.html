@@ -187,7 +187,6 @@ function loadMfgId() {
   // 1. Try getQueryParams (button-triggered widget params)
   try {
     var params = ZOHO.CREATOR.UTIL.getQueryParams();
-    console.log('Page params:', JSON.stringify(params));
     if (params && params.Manufacture_ID) {
       mfgId = String(params.Manufacture_ID);
       document.getElementById('mfg-label').textContent = 'MFG: ' + mfgId;
@@ -200,7 +199,6 @@ function loadMfgId() {
   // 2. Try parent page URL (page reloaded with ?Manufacture_ID=XXXXX)
   try {
     var href = window.parent.location.href;
-    console.log('Parent URL:', href);
     var match = href.match(/[?&]Manufacture_ID=([^&]+)/);
     if (match && match[1]) {
       mfgId = match[1];
@@ -239,16 +237,10 @@ function loadStockCatalog() {
       pageSize: 200
     }).then(function(resp) {
       var rows = resp.data || [];
-      console.log('Stock catalog page ' + pageNum + ': ' + rows.length + ' rows');
-      if (pageNum === 1 && rows.length > 0) {
-        console.log('Sample row keys:', Object.keys(rows[0]).join(', '));
-        console.log('Sample row:', JSON.stringify(rows[0]));
-      }
       allRows = allRows.concat(rows);
       if (rows.length === 200) {
         fetchPage(pageNum + 1, allRows);
       } else {
-        console.log('Stock catalog total:', allRows.length, 'rows');
         processRows(allRows);
         buildShapeDropdown();
       }
@@ -438,13 +430,11 @@ function loadSupplierQualifications() {
       var qual = (qualRaw && typeof qualRaw === 'object')
                  ? (qualRaw.zc_display_value || qualRaw.display_value || qualRaw.Description || '')
                  : String(qualRaw || '');
-      console.log('Qual record — supId:', supId, '| qual:', qual);
       if (supId && qual && qual !== 'Not Applicable') {
         if (!supplierQualMap[supId]) supplierQualMap[supId] = [];
         supplierQualMap[supId].push(qual);
       }
     });
-    console.log('supplierQualMap:', JSON.stringify(supplierQualMap));
   }).catch(function(e) {
     console.warn('Qualifications load failed:', e);
     return Promise.resolve();
@@ -554,7 +544,7 @@ function sortAndRender(results) {
         '</div>' +
         '<div class="card-breakdown">' +
           '<div class="bd-item"><div class="bd-val" style="color:' + stockColor + '">' + sup.breakdown.stockMatch + '%</div><div class="bd-lbl">Stock</div></div>' +
-
+          '<div class="bd-item"><div class="bd-val" style="color:#888">' + sup.breakdown.capabilities + '%</div><div class="bd-lbl">Capabilities</div></div>' +
           '<div class="bd-item"><div class="bd-val" style="color:' + distColor + '">' + sup.breakdown.distance + '%</div><div class="bd-lbl">Distance</div></div>' +
           '<div class="bd-item"><div class="bd-val" style="color:#888">' + sup.breakdown.history + '%</div><div class="bd-lbl">History</div></div>' +
         '</div>' +

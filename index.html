@@ -453,30 +453,9 @@ function applyFiltersAndRender() {
   var reqCaps  = getChecked('cap-filters');
   var reqQuals = getChecked('qual-filters');
 
-  var filtered = allResults.filter(function(sup) {
-    // Capabilities — filter: supplier must have ANY of the checked capabilities
-    if (reqCaps.length > 0) {
-      var supCapNames = (sup.capNames || []).map(function(c) { return String(c).toLowerCase(); });
-      var reqCapsLower = reqCaps.map(function(c) { return String(c).toLowerCase(); });
-      var hasAny = reqCapsLower.some(function(rc) { return supCapNames.indexOf(rc) !== -1; });
-      if (!hasAny && sup.capCount === 0) return false;
-      // If supplier has no cap name data yet, fall through and let score reflect it
-    }
-    // Disadvantage & Minority — OR logic: supplier must have ANY checked qualification
-    if (reqQuals.length > 0) {
-      var supQuals = supplierQualMap[sup.id] || [];
-      // Match by abbreviation prefix — e.g. 'VBE' matches 'VBE - Veteran Business Enterprise'
-      var hasAny = reqQuals.some(function(q) {
-        var qStr = String(q || '').toUpperCase();
-        return supQuals.some(function(sq) {
-          var sqUpper = String(sq || '').toUpperCase();
-          return sqUpper === qStr || sqUpper.indexOf(qStr + ' ') === 0 || sqUpper.indexOf(qStr + '-') === 0 || sqUpper.indexOf(qStr) !== -1;
-        });
-      });
-      if (!hasAny) return false;
-    }
-    return true;
-  });
+  // Caps and quals are scoring signals only — no hard filtering.
+  // Radius is the only hard gate (handled by Railway).
+  var filtered = allResults;
 
   allResults._filtered = filtered;
   sortAndRender(filtered);

@@ -87,9 +87,11 @@
   <div class="filter-row">
     <div class="filter-group">
       <label>Radius</label>
-      <div style="display:flex;align-items:center;gap:6px">
-        <input type="range" id="radius" min="25" max="500" step="25" value="150" style="width:120px;height:auto;border:none;padding:0;background:transparent;">
-        <span class="radius-display" id="radius-val">150 mi</span>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        <input type="range" id="radius" min="25" max="3000" step="25" value="150" style="width:120px;height:auto;border:none;padding:0;background:transparent;">
+        <input type="number" id="radius-custom" min="1" max="9999" value="150"
+          style="width:64px;height:26px;border:1px solid #cdd2da;border-radius:4px;padding:0 6px;font-size:12px;font-weight:600;color:#5F94CE;text-align:center;">
+        <span style="font-size:11px;color:#666;">mi</span>
       </div>
     </div>
     <div class="filter-group">
@@ -315,8 +317,19 @@ function buildShapeDropdown() {
 
   sel.addEventListener('change', onShapeChange);
   document.getElementById('sel-material').addEventListener('change', onMaterialChange);
-  document.getElementById('radius').addEventListener('input', function(e) {
-    document.getElementById('radius-val').textContent = e.target.value + ' mi';
+  var radiusSlider = document.getElementById('radius');
+  var radiusCustom = document.getElementById('radius-custom');
+
+  radiusSlider.addEventListener('input', function(e) {
+    radiusCustom.value = e.target.value;
+  });
+
+  radiusCustom.addEventListener('input', function(e) {
+    var val = parseInt(e.target.value) || 150;
+    if (val < 1) val = 1;
+    if (val > 9999) val = 9999;
+    // Clamp slider to its max
+    radiusSlider.value = Math.min(val, 3000);
   });
 
   console.log('Shapes loaded:', shapes.length);
@@ -379,7 +392,7 @@ function runSearch() {
   document.getElementById('results-list').innerHTML = '<div class="status-msg"><span class="loading-dots">Searching</span></div>';
   document.getElementById('results-header').style.display = 'none';
 
-  var radius  = document.getElementById('radius').value;
+  var radius  = parseInt(document.getElementById('radius-custom').value) || parseInt(document.getElementById('radius').value) || 150;
   var shapeId = document.getElementById('sel-shape').value;
   var matId   = document.getElementById('sel-material').value;
   var specId  = document.getElementById('sel-spec').value;
@@ -438,13 +451,20 @@ function applyFiltersAndRender() {
   var reqQuals = getChecked('qual-filters');
 
   var filtered = allResults.filter(function(sup) {
-    if (reqCaps.length > 0 && sup.capCount === 0) return false;
+    // Capabilities — OR logic: supplier must have ANY of the checked capabilities
+    if (reqCaps.length > 0) {
+      if (sup.capCount === 0) return false;
+      // capNames comes from the breakdown if available, otherwise pass if capCount > 0
+      // For now: if supplier has any capabilities, let Railway scoring handle the weight
+      // Future: pass cap names from Railway for exact matching
+    }
+    // Disadvantage & Minority — OR logic: supplier must have ANY checked qualification
     if (reqQuals.length > 0) {
       var supQuals = supplierQualMap[sup.id] || [];
-      var hasAll = reqQuals.every(function(q) {
+      var hasAny = reqQuals.some(function(q) {
         return supQuals.some(function(sq) { return sq.toLowerCase().indexOf(q.toLowerCase()) !== -1; });
       });
-      if (!hasAll) return false;
+      if (!hasAny) return false;
     }
     return true;
   });

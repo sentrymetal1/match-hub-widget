@@ -112,15 +112,66 @@
   .bd-val { font-size: 11px; font-weight: 600; }
   .bd-lbl { font-size: 10px; color: #888; }
 
-  .card-actions { flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; }
-  .btn-action {
-    font-size: 11px; font-weight: 500; padding: 5px 11px; border-radius: 4px;
-    cursor: pointer; white-space: nowrap; border: 1px solid #cdd2da;
-    background: #fff; color: #1a1a1a;
+  /* ── Hover Tooltip ── */
+  .result-card { position: relative; }
+  .w-card-tooltip {
+    position: absolute;
+    top: 100%;
+    left: 12px;
+    margin-top: 4px;
+    background: #fff;
+    border: 1px solid #d5dce5;
+    border-radius: 7px;
+    box-shadow: 0 8px 24px rgba(15,34,64,0.14);
+    padding: 10px 12px;
+    min-width: 280px;
+    max-width: 340px;
+    font-size: 11px;
+    z-index: 50;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-4px);
+    transition: opacity 0.15s, transform 0.15s;
   }
-  .btn-action.primary { background: #5F94CE; color: #fff; border-color: #5F94CE; }
-  .btn-action.primary:hover { background: #4a7eb5; }
-  .btn-action.matched { background: #f0faf6; color: #085041; border-color: #b2dfdb; }
+  .result-card:hover .w-card-tooltip {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+  /* Flip tooltip upward for last 2 cards */
+  .result-card.tt-flip .w-card-tooltip {
+    top: auto; bottom: 100%; margin-top: 0; margin-bottom: 4px;
+    transform: translateY(4px);
+  }
+  .result-card.tt-flip:hover .w-card-tooltip { transform: translateY(0); }
+
+  .tt-section { padding: 5px 0; border-bottom: 1px solid #eef0f3; }
+  .tt-section:last-child { border-bottom: none; }
+  .tt-label {
+    font-size: 9px; font-weight: 700; color: #5f94ce;
+    text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 3px;
+  }
+  .tt-row { display: flex; justify-content: space-between; padding: 1px 0; color: #555; }
+  .tt-row strong { color: #1A1D23; font-weight: 600; }
+  .tt-contact { font-size: 10px; color: #666; margin-top: 1px; }
+  .tt-contact a { color: #5f94ce; text-decoration: none; cursor: pointer; }
+  .tt-contact a:hover { text-decoration: underline; }
+  .tt-stock-pill {
+    display: inline-block; font-size: 10px; background: #eef4fb; color: #185FA5;
+    padding: 2px 7px; border-radius: 3px; margin: 2px 2px 0 0;
+  }
+  .tt-match-badge {
+    display: inline-block; font-size: 10px; font-weight: 600;
+    padding: 2px 8px; border-radius: 20px;
+  }
+  .tt-match-badge.matched { background: #E1F5EE; color: #085041; }
+  .tt-match-badge.unmatched { background: #FFF3DC; color: #7A4A00; }
+  .tt-copy-btn {
+    font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 3px;
+    border: 1px solid #cdd2da; background: #fff; color: #555; cursor: pointer;
+    margin-top: 4px;
+  }
+  .tt-copy-btn:hover { background: #f4f6f9; }
 
   .status-msg { text-align: center; padding: 40px 20px; color: #888; font-size: 13px; line-height: 1.6; }
   .loading-dots::after { content: '...'; animation: dots 1.2s steps(4,end) infinite; }
@@ -545,26 +596,42 @@ function sortAndRender(results) {
           '<div class="bd-item"><div class="bd-val" style="color:#888">' + sup.breakdown.history + '%</div><div class="bd-lbl">History</div></div>' +
         '</div>' +
       '</div>' +
-      '<div class="card-actions">' +
-        (isMatched
-          ? '<button class="btn-action matched" onclick="openMatchEdit(\'' + sup.id + '\')">View match</button>'
-          : '<button class="btn-action primary" onclick="openMatchEdit(\'' + sup.id + '\')">Edit match</button>') +
-        '<button class="btn-action" onclick="copyEmail(\'' + (sup.email || '') + '\')">Copy email</button>' +
+      '<div class="w-card-tooltip">' +
+        '<div class="tt-section">' +
+          '<div class="tt-label">Contact</div>' +
+          (sup.email ? '<div class="tt-contact"><a onclick="copyEmail(\'' + sup.email.replace(/'/g, "\\'") + '\')">' + sup.email + '</a></div>' : '<div class="tt-contact" style="color:#aaa;">No email on file</div>') +
+        '</div>' +
+        '<div class="tt-section">' +
+          '<div class="tt-label">Match Details</div>' +
+          '<div class="tt-row"><span>Distance</span><strong>' + sup.distanceMi + ' mi</strong></div>' +
+          '<div class="tt-row"><span>Stock matches</span><strong>' + sup.stockCount + ' specs</strong></div>' +
+          '<div class="tt-row"><span>Capabilities</span><strong>' + sup.capCount + '</strong></div>' +
+          '<div class="tt-row"><span>Stock score</span><strong>' + sup.breakdown.stockMatch + '%</strong></div>' +
+          '<div class="tt-row"><span>History score</span><strong>' + sup.breakdown.history + '%</strong></div>' +
+        '</div>' +
+        (supQuals.length ? '<div class="tt-section"><div class="tt-label">Certifications</div>' +
+          supQuals.map(function(q) { return '<span class="tt-stock-pill">' + q + '</span>'; }).join('') +
+        '</div>' : '') +
+        '<div class="tt-section">' +
+          (isMatched
+            ? '<span class="tt-match-badge matched">&#10003; Currently Matched</span>'
+            : '<span class="tt-match-badge unmatched">Not yet matched</span>') +
+        '</div>' +
+        (sup.email ? '<button class="tt-copy-btn" onclick="copyEmail(\'' + sup.email.replace(/'/g, "\\'") + '\')">&#128203; Copy email</button>' : '') +
       '</div>' +
     '</div>';
   }).join('');
+
+  // Flip tooltips upward for last 2 cards so they don't overflow below
+  setTimeout(function() {
+    var cards = document.querySelectorAll('.result-card');
+    cards.forEach(function(c) { c.classList.remove('tt-flip'); });
+    if (cards.length >= 2) cards[cards.length - 1].classList.add('tt-flip');
+    if (cards.length >= 3) cards[cards.length - 2].classList.add('tt-flip');
+  }, 50);
 }
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
-function openMatchEdit(supplierId) {
-  var matchRecId = existingMatchRecIds[supplierId] || '';
-  var url = 'https://customer.materialcompassportal.com/#Page:Manufacture_And_Supplier_Existing_Matching_Page'
-    + '?Supplier_Manufacture_Match_ID=' + matchRecId
-    + '&Supplier_ID=' + supplierId
-    + '&Manufacture_ID=' + (mfgId || '');
-  window.open(url, 'match_edit', 'height=900,width=1100,scrollbars=yes');
-}
-
 function copyEmail(email) {
   if (!email) { showToast('No email on file for this supplier', 'error'); return; }
   navigator.clipboard.writeText(email)

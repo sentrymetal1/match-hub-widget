@@ -558,14 +558,11 @@ function sortAndRender(results) {
 // ─── Actions ──────────────────────────────────────────────────────────────────
 function openMatchEdit(supplierId) {
   var matchRecId = existingMatchRecIds[supplierId] || '';
-  var msg = {
-    type: 'openMatchPage',
-    Supplier_Manufacture_Match_ID: matchRecId,
-    Supplier_ID: supplierId,
-    Manufacture_ID: mfgId || ''
-  };
-  try { window.parent.postMessage(msg, '*'); } catch(e) {}
-  try { window.top.postMessage(msg, '*'); } catch(e) {}
+  var url = 'https://customer.materialcompassportal.com/#Page:Manufacture_And_Supplier_Existing_Matching_Page'
+    + '?Supplier_Manufacture_Match_ID=' + matchRecId
+    + '&Supplier_ID=' + supplierId
+    + '&Manufacture_ID=' + (mfgId || '');
+  window.open(url, 'match_edit', 'height=900,width=1100,scrollbars=yes');
 }
 
 function copyEmail(email) {

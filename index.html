@@ -189,7 +189,8 @@ var APP_NAME = 'type-formsheet-2-18-21';
 var mfgId = null;
 var allResults = [];
 var supplierQualMap = {};
-var existingMatchIds = {}; // supplier IDs already matched with this MFG
+var existingMatchIds = {};    // supplierId -> true (already matched)
+var existingMatchRecIds = {}; // supplierId -> match record ID
 
 var shapeMap = {};
 
@@ -277,10 +278,14 @@ function loadMfgName() {
     pageSize: 200
   }).then(function(resp) {
     existingMatchIds = {};
+    existingMatchRecIds = {};
     (resp.data || []).forEach(function(rec) {
       var supId = rec.SUPPLIER && rec.SUPPLIER.ID ? String(rec.SUPPLIER.ID) :
                   typeof rec.SUPPLIER === 'string' ? rec.SUPPLIER : null;
-      if (supId) existingMatchIds[supId] = true;
+      if (supId) {
+        existingMatchIds[supId] = true;
+        existingMatchRecIds[supId] = String(rec.ID || '');
+      }
     });
   }).catch(function(e) {
     console.warn('Existing matches load failed:', e);
@@ -597,7 +602,12 @@ function sortAndRender(results) {
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
 function openMatchEdit(supplierId) {
-  window.open('https://customer.materialcompassportal.com/Pages/Manufacture_Supplier_Match_Status?tab=tab2&supplier=' + supplierId, '_blank');
+  var matchRecId = existingMatchRecIds[supplierId] || '';
+  var url = 'https://customer.materialcompassportal.com/Pages/Manufacture_And_Supplier_Existing_Matching_Page'
+    + '?Supplier_Manufacture_Match_ID=' + matchRecId
+    + '&Supplier_ID=' + supplierId
+    + '&Manufacture_ID=' + (mfgId || '');
+  window.open(url, 'match_edit', 'height=900,width=1100,scrollbars=yes');
 }
 
 function copyEmail(email) {

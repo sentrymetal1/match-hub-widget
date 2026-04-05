@@ -603,31 +603,16 @@ function sortAndRender(results) {
 // ─── Actions ──────────────────────────────────────────────────────────────────
 function openMatchEdit(supplierId) {
   var matchRecId = existingMatchRecIds[supplierId] || '';
-  var pageParams = 'Supplier_Manufacture_Match_ID=' + matchRecId
-    + '&Supplier_ID=' + supplierId
-    + '&Manufacture_ID=' + (mfgId || '');
-
-  // Use Zoho SDK popup — same as the report action button uses internally
-  try {
-    ZOHO.CREATOR.UI.Popup.open({
-      appName: APP_NAME,
-      pageName: 'Manufacture_And_Supplier_Existing_Matching_Page',
-      params: pageParams,
-      window: { height: '900px', width: '1100px' }
-    }).catch(function(e) {
-      console.warn('Zoho popup failed, falling back to window.open:', e);
-      fallbackOpen(pageParams);
-    });
-  } catch(e) {
-    console.warn('Zoho popup threw, falling back to window.open:', e);
-    fallbackOpen(pageParams);
-  }
-}
-
-function fallbackOpen(pageParams) {
-  // Fallback: open via portal URL if SDK popup is unavailable
-  var url = 'https://customer.materialcompassportal.com/Pages/Manufacture_And_Supplier_Existing_Matching_Page?' + pageParams;
-  window.open(url, 'match_edit', 'height=900,width=1100,scrollbars=yes');
+  // Post a message to the parent Zoho page — the HTML snippet listens for this
+  // and opens the popup natively using Zoho's openUrl Deluge method
+  var msg = {
+    type: 'openMatchPage',
+    Supplier_Manufacture_Match_ID: matchRecId,
+    Supplier_ID: supplierId,
+    Manufacture_ID: mfgId || ''
+  };
+  try { window.parent.postMessage(msg, '*'); } catch(e) {}
+  try { window.top.postMessage(msg, '*'); } catch(e) {}
 }
 
 function copyEmail(email) {

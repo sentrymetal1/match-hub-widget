@@ -7,83 +7,129 @@
 <script src="https://js.zohostatic.com/creator/widgets/version/1.0/widgetsdk-min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'DM Sans', sans-serif; background: #f5f6f8; color: #1a1a1a; font-size: 13px; }
+  body { font-family: 'DM Sans', sans-serif; background: #f5f6f8; color: #1a1a1a; font-size: 13px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
+  /* ── Header ── */
   .mc-header {
-    background: linear-gradient(135deg, #5F94CE, #3a6ea8);
-    color: white; padding: 10px 16px;
+    background: linear-gradient(135deg, #0F2240, #1a3a5c);
+    color: white; padding: 10px 16px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: space-between;
   }
   .mc-header h2 { font-size: 14px; font-weight: 600; letter-spacing: 0.5px; }
   .mc-header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
-  .mc-header-right .mfg-name { font-size: 12px; font-weight: 600; opacity: 1; }
-  .mc-header-right .mfg-id   { font-size: 10px; opacity: 0.65; }
+  .mc-header-right .mfg-name { font-size: 12px; font-weight: 600; }
+  .mc-header-right .mfg-id   { font-size: 10px; opacity: 0.6; }
 
-  .filters { background: #fff; border-bottom: 1px solid #e0e4ea; padding: 12px 16px; }
-  .filter-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 8px; }
+  /* ── Two-column layout ── */
+  .mc-body { display: flex; flex: 1; overflow: hidden; }
+
+  /* ── Left panel — filters ── */
+  .left-panel {
+    width: 240px; flex-shrink: 0;
+    background: #fff; border-right: 1px solid #e0e4ea;
+    display: flex; flex-direction: column;
+    overflow-y: auto; padding: 14px 12px; gap: 14px;
+  }
+
+  .filter-section { display: flex; flex-direction: column; gap: 6px; }
+  .filter-section-title {
+    font-size: 10px; font-weight: 700; color: #5F94CE;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    padding-bottom: 4px; border-bottom: 1px solid #e8edf2;
+  }
   .filter-group { display: flex; flex-direction: column; gap: 3px; }
-  .filter-group label { font-size: 11px; color: #666; font-weight: 500; }
-  .filter-group select { height: 30px; border: 1px solid #cdd2da; border-radius: 4px; padding: 0 8px; font-size: 12px; background: #fff; color: #1a1a1a; min-width: 130px; }
+  .filter-group label { font-size: 11px; color: #555; font-weight: 500; }
+  .filter-group select {
+    height: 28px; border: 1px solid #cdd2da; border-radius: 4px;
+    padding: 0 7px; font-size: 11px; background: #fff; color: #1a1a1a; width: 100%;
+  }
   .filter-group select:disabled { background: #f5f6f8; color: #aaa; }
 
-  .filter-toggles { display: flex; gap: 8px; flex-wrap: wrap; }
-  .toggle-section { background: #f8f9fb; border: 1px solid #e0e4ea; border-radius: 6px; padding: 8px 12px; flex: 1; min-width: 200px; }
-  .toggle-section h4 { font-size: 11px; color: #5F94CE; font-weight: 600; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.4px; }
-  .checkbox-grid { display: flex; flex-wrap: wrap; gap: 4px 12px; }
-  .checkbox-grid label { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #444; cursor: pointer; white-space: nowrap; }
-  .checkbox-grid input[type=checkbox] { width: 12px; height: 12px; accent-color: #5F94CE; }
+  .radius-row { display: flex; align-items: center; gap: 6px; }
+  .radius-row input[type=range] { flex: 1; height: auto; border: none; padding: 0; background: transparent; accent-color: #5F94CE; }
+  .radius-row input[type=number] {
+    width: 52px; height: 26px; border: 1px solid #cdd2da; border-radius: 4px;
+    padding: 0 5px; font-size: 11px; font-weight: 600; color: #5F94CE; text-align: center;
+  }
+  .radius-unit { font-size: 10px; color: #888; }
+
+  .checkbox-list { display: flex; flex-direction: column; gap: 4px; }
+  .checkbox-list label { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #444; cursor: pointer; }
+  .checkbox-list input[type=checkbox] { width: 12px; height: 12px; accent-color: #5F94CE; flex-shrink: 0; }
 
   .search-btn {
-    background: #5F94CE; color: white; border: none; border-radius: 4px;
-    padding: 0 18px; height: 30px; font-size: 12px; font-weight: 600;
-    cursor: pointer; white-space: nowrap; align-self: flex-end;
+    background: #5F94CE; color: white; border: none; border-radius: 5px;
+    padding: 8px 0; font-size: 12px; font-weight: 600; width: 100%;
+    cursor: pointer; letter-spacing: 0.3px; margin-top: 4px;
   }
   .search-btn:hover { background: #4a7eb5; }
   .search-btn:disabled { background: #a0b8d5; cursor: not-allowed; }
 
-  .results-area { padding: 12px 16px; }
-  .results-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  /* ── Right panel — results ── */
+  .right-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  .results-toolbar {
+    background: #fff; border-bottom: 1px solid #e0e4ea;
+    padding: 8px 14px; display: flex; justify-content: space-between; align-items: center;
+    flex-shrink: 0;
+  }
   .results-count { font-size: 12px; color: #666; }
   .sort-sel { font-size: 11px; border: 1px solid #cdd2da; border-radius: 4px; padding: 3px 6px; color: #444; }
 
+  .results-list { flex: 1; overflow-y: auto; padding: 12px 14px; }
+
+  /* ── Cards ── */
   .result-card {
     background: #fff; border: 1px solid #e0e4ea; border-radius: 8px;
-    padding: 12px 14px; margin-bottom: 8px;
-    display: flex; align-items: flex-start; gap: 12px; transition: box-shadow 0.15s;
+    padding: 11px 13px; margin-bottom: 8px;
+    display: flex; align-items: flex-start; gap: 11px;
+    transition: box-shadow 0.15s;
   }
   .result-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
   .result-card.already-matched { border-left: 3px solid #1D9E75; }
 
-  .score-ring { flex-shrink: 0; width: 48px; height: 48px; }
-  .score-ring svg { width: 48px; height: 48px; }
+  .score-ring { flex-shrink: 0; width: 46px; height: 46px; }
+  .score-ring svg { width: 46px; height: 46px; }
+
   .card-info { flex: 1; min-width: 0; }
-  .card-name { font-size: 14px; font-weight: 600; color: #1a1a1a; display: flex; align-items: center; gap: 8px; }
-  .matched-badge { font-size: 10px; font-weight: 600; background: #E1F5EE; color: #085041; border: 1px solid #b2dfdb; border-radius: 20px; padding: 2px 8px; white-space: nowrap; }
+  .card-name { font-size: 13px; font-weight: 600; color: #1a1a1a; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+  .matched-badge { font-size: 10px; font-weight: 600; background: #E1F5EE; color: #085041; border: 1px solid #b2dfdb; border-radius: 20px; padding: 1px 7px; white-space: nowrap; }
   .card-sub { font-size: 11px; color: #888; margin-top: 2px; }
-  .card-pills { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
-  .pill { font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+
+  .card-pills { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 5px; }
+  .pill { font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 20px; white-space: nowrap; }
   .pill-blue   { background: #E6F1FB; color: #185FA5; }
   .pill-green  { background: #EAF3DE; color: #3B6D11; }
   .pill-teal   { background: #E1F5EE; color: #085041; }
   .pill-gray   { background: #f0f1f3; color: #666; }
   .pill-purple { background: #EEEDFE; color: #3C3489; }
-  .card-breakdown { display: flex; gap: 10px; margin-top: 8px; background: #f8f9fb; border-radius: 4px; padding: 6px 10px; }
+
+  .card-breakdown {
+    display: flex; gap: 8px; margin-top: 7px;
+    background: #f8f9fb; border-radius: 4px; padding: 5px 9px;
+  }
   .bd-item { text-align: center; }
-  .bd-val { font-size: 12px; font-weight: 600; }
+  .bd-val { font-size: 11px; font-weight: 600; }
   .bd-lbl { font-size: 10px; color: #888; }
-  .card-actions { flex-shrink: 0; display: flex; flex-direction: column; gap: 5px; }
-  .btn-action { font-size: 11px; font-weight: 500; padding: 5px 12px; border-radius: 4px; cursor: pointer; white-space: nowrap; border: 1px solid #cdd2da; background: #fff; color: #1a1a1a; }
+
+  .card-actions { flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; }
+  .btn-action {
+    font-size: 11px; font-weight: 500; padding: 5px 11px; border-radius: 4px;
+    cursor: pointer; white-space: nowrap; border: 1px solid #cdd2da;
+    background: #fff; color: #1a1a1a;
+  }
   .btn-action.primary { background: #5F94CE; color: #fff; border-color: #5F94CE; }
   .btn-action.primary:hover { background: #4a7eb5; }
   .btn-action.matched { background: #f0faf6; color: #085041; border-color: #b2dfdb; }
-  .status-msg { text-align: center; padding: 30px; color: #888; font-size: 13px; }
+
+  .status-msg { text-align: center; padding: 40px 20px; color: #888; font-size: 13px; line-height: 1.6; }
   .loading-dots::after { content: '...'; animation: dots 1.2s steps(4,end) infinite; }
   @keyframes dots { 0%,20%{content:''} 40%{content:'.'} 60%{content:'..'} 80%,100%{content:'...'} }
 
-  /* Toast notification */
+  /* ── Toast ── */
   #toast {
-    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px);
-    background: #1a1a1a; color: #fff; padding: 8px 18px; border-radius: 6px;
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%) translateY(16px);
+    background: #1a1a1a; color: #fff; padding: 7px 16px; border-radius: 6px;
     font-size: 12px; font-weight: 500; opacity: 0; pointer-events: none;
     transition: opacity 0.2s, transform 0.2s; z-index: 9999; white-space: nowrap;
   }
@@ -94,6 +140,7 @@
 </head>
 <body>
 
+<!-- Header -->
 <div class="mc-header">
   <h2>Match Hub — AI Supplier Suggestions</h2>
   <div class="mc-header-right">
@@ -102,36 +149,39 @@
   </div>
 </div>
 
-<div class="filters">
-  <div class="filter-row">
-    <div class="filter-group">
-      <label>Radius</label>
-      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-        <input type="range" id="radius" min="25" max="3000" step="25" value="150" style="width:120px;height:auto;border:none;padding:0;background:transparent;">
-        <input type="number" id="radius-custom" min="1" max="9999" value="150"
-          style="width:64px;height:26px;border:1px solid #cdd2da;border-radius:4px;padding:0 6px;font-size:12px;font-weight:600;color:#5F94CE;text-align:center;">
-        <span style="font-size:11px;color:#666;">mi</span>
+<div class="mc-body">
+
+  <!-- Left panel -->
+  <div class="left-panel">
+
+    <div class="filter-section">
+      <div class="filter-section-title">Search Radius</div>
+      <div class="radius-row">
+        <input type="range" id="radius" min="25" max="3000" step="25" value="150">
+        <input type="number" id="radius-custom" min="1" max="9999" value="150">
+        <span class="radius-unit">mi</span>
       </div>
     </div>
-    <div class="filter-group">
-      <label>Shape</label>
-      <select id="sel-shape" disabled><option value="">Loading catalog...</option></select>
-    </div>
-    <div class="filter-group">
-      <label>Material</label>
-      <select id="sel-material" disabled><option value="">— select shape first —</option></select>
-    </div>
-    <div class="filter-group">
-      <label>Spec</label>
-      <select id="sel-spec" disabled><option value="">— select material first —</option></select>
-    </div>
-    <button class="search-btn" id="search-btn" onclick="runSearch()">Search</button>
-  </div>
 
-  <div class="filter-toggles">
-    <div class="toggle-section">
-      <h4>Capabilities</h4>
-      <div class="checkbox-grid" id="cap-filters">
+    <div class="filter-section">
+      <div class="filter-section-title">Material Filter</div>
+      <div class="filter-group">
+        <label>Shape</label>
+        <select id="sel-shape" disabled><option value="">Loading...</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Material</label>
+        <select id="sel-material" disabled><option value="">— select shape —</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Spec</label>
+        <select id="sel-spec" disabled><option value="">— select material —</option></select>
+      </div>
+    </div>
+
+    <div class="filter-section">
+      <div class="filter-section-title">Capabilities</div>
+      <div class="checkbox-list" id="cap-filters">
         <label><input type="checkbox" value="WELDING - Mig"> Welding — MIG</label>
         <label><input type="checkbox" value="WELDING - Tig"> Welding — TIG</label>
         <label><input type="checkbox" value="WELDING - Stick"> Welding — Stick</label>
@@ -150,9 +200,10 @@
         <label><input type="checkbox" value="Punching"> Punching</label>
       </div>
     </div>
-    <div class="toggle-section">
-      <h4>Disadvantage &amp; Minority</h4>
-      <div class="checkbox-grid" id="qual-filters">
+
+    <div class="filter-section">
+      <div class="filter-section-title">Disadvantage &amp; Minority</div>
+      <div class="checkbox-list" id="qual-filters">
         <label><input type="checkbox" value="WBE"> WBE</label>
         <label><input type="checkbox" value="MBE"> MBE</label>
         <label><input type="checkbox" value="VBE"> VBE</label>
@@ -163,21 +214,26 @@
         <label><input type="checkbox" value="8(a)"> 8(a)</label>
       </div>
     </div>
-  </div>
-</div>
 
-<div class="results-area">
-  <div class="results-header" id="results-header" style="display:none">
-    <div class="results-count" id="results-count"></div>
-    <select class="sort-sel" id="sort-sel" onchange="sortAndRender()">
-      <option value="score">Sort: AI match score</option>
-      <option value="distance">Sort: Distance</option>
-      <option value="stock">Sort: Stock match</option>
-    </select>
+    <button class="search-btn" id="search-btn" onclick="runSearch()">Search</button>
+
   </div>
-  <div id="results-list">
-    <div class="status-msg">Enter your search criteria and click Search.</div>
+
+  <!-- Right panel -->
+  <div class="right-panel">
+    <div class="results-toolbar" id="results-toolbar" style="display:none">
+      <div class="results-count" id="results-count"></div>
+      <select class="sort-sel" id="sort-sel" onchange="sortAndRender()">
+        <option value="score">Sort: AI match score</option>
+        <option value="distance">Sort: Distance</option>
+        <option value="stock">Sort: Stock match</option>
+      </select>
+    </div>
+    <div class="results-list" id="results-list">
+      <div class="status-msg">Set your radius and filters,<br>then click <strong>Search</strong> to find matching suppliers.</div>
+    </div>
   </div>
+
 </div>
 
 <div id="toast"></div>
@@ -189,9 +245,8 @@ var APP_NAME = 'type-formsheet-2-18-21';
 var mfgId = null;
 var allResults = [];
 var supplierQualMap = {};
-var existingMatchIds = {};    // supplierId -> true (already matched)
-var existingMatchRecIds = {}; // supplierId -> match record ID
-
+var existingMatchIds    = {};
+var existingMatchRecIds = {};
 var shapeMap = {};
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
@@ -217,107 +272,64 @@ ZOHO.CREATOR.init().then(function() {
 function loadMfgId() {
   try {
     var params = ZOHO.CREATOR.UTIL.getQueryParams();
-    if (params && params.Manufacture_ID) {
-      mfgId = String(params.Manufacture_ID);
-      loadMfgName();
-      return;
-    }
-  } catch(e) { console.warn('getQueryParams failed:', e); }
-
-  try {
-    var href = window.parent.location.href;
-    var match = href.match(/[?&]Manufacture_ID=([^&]+)/);
-    if (match && match[1]) {
-      mfgId = match[1];
-      loadMfgName();
-      return;
-    }
-  } catch(e) { console.warn('Parent URL read failed:', e); }
-
-  try {
-    var selfMatch = window.location.href.match(/[?&]Manufacture_ID=([^&]+)/);
-    if (selfMatch && selfMatch[1]) {
-      mfgId = selfMatch[1];
-      loadMfgName();
-      return;
-    }
+    if (params && params.Manufacture_ID) { mfgId = String(params.Manufacture_ID); loadMfgName(); return; }
   } catch(e) {}
-
+  try {
+    var m = window.parent.location.href.match(/[?&]Manufacture_ID=([^&]+)/);
+    if (m && m[1]) { mfgId = m[1]; loadMfgName(); return; }
+  } catch(e) {}
+  try {
+    var m2 = window.location.href.match(/[?&]Manufacture_ID=([^&]+)/);
+    if (m2 && m2[1]) { mfgId = m2[1]; loadMfgName(); return; }
+  } catch(e) {}
   document.getElementById('mfg-name').textContent = 'No MFG ID';
-  console.warn('Could not find Manufacture_ID in any source');
 }
 
-// ─── Load MFG company name + existing matches ──────────────────────────────
+// ─── MFG name + existing matches ──────────────────────────────────────────────
 function loadMfgName() {
   document.getElementById('mfg-label').textContent = 'ID: ' + mfgId;
-
-  // Load company name
   ZOHO.CREATOR.API.getAllRecords({
-    appName: APP_NAME,
-    reportName: 'Customer_Entry_Report',
-    criteria: 'ID == "' + mfgId + '"',
-    page: 1,
-    pageSize: 1
+    appName: APP_NAME, reportName: 'Customer_Entry_Report',
+    criteria: 'ID == "' + mfgId + '"', page: 1, pageSize: 1
   }).then(function(resp) {
     var rec = resp.data && resp.data[0];
-    if (rec) {
-      var name = rec.Company_Name || rec.Manufacture_Name || rec.Name || ('MFG ' + mfgId);
-      document.getElementById('mfg-name').textContent = name;
-    } else {
-      document.getElementById('mfg-name').textContent = 'MFG ' + mfgId;
-    }
+    var name = rec ? (rec.Company_Name || rec.Manufacture_Name || rec.Name || ('MFG ' + mfgId)) : ('MFG ' + mfgId);
+    document.getElementById('mfg-name').textContent = name;
   }).catch(function() {
     document.getElementById('mfg-name').textContent = 'MFG ' + mfgId;
   });
 
-  // Load existing matches for this MFG so we can badge already-matched suppliers
   ZOHO.CREATOR.API.getAllRecords({
-    appName: APP_NAME,
-    reportName: 'Manufacture_Supplier_Existing_Match_Report',
-    page: 1,
-    pageSize: 200
+    appName: APP_NAME, reportName: 'Manufacture_Supplier_Existing_Match_Report',
+    page: 1, pageSize: 200
   }).then(function(resp) {
-    existingMatchIds = {};
-    existingMatchRecIds = {};
+    existingMatchIds = {}; existingMatchRecIds = {};
     (resp.data || []).forEach(function(rec) {
       var supId = rec.SUPPLIER && rec.SUPPLIER.ID ? String(rec.SUPPLIER.ID) :
                   typeof rec.SUPPLIER === 'string' ? rec.SUPPLIER : null;
-      if (supId) {
-        existingMatchIds[supId] = true;
-        existingMatchRecIds[supId] = String(rec.ID || '');
-      }
+      if (supId) { existingMatchIds[supId] = true; existingMatchRecIds[supId] = String(rec.ID || ''); }
     });
-  }).catch(function(e) {
-    console.warn('Existing matches load failed:', e);
-  });
+  }).catch(function(e) { console.warn('Existing matches load failed:', e); });
 }
 
-// ─── Load Stocked_Material_List for cascading dropdowns ───────────────────────
+// ─── Stock catalog ────────────────────────────────────────────────────────────
 function loadStockCatalog() {
   shapeMap = {};
-  document.getElementById('sel-shape').innerHTML = '<option value="">Loading catalog...</option>';
+  document.getElementById('sel-shape').innerHTML = '<option value="">Loading...</option>';
 
   function fetchPage(pageNum, allRows) {
     ZOHO.CREATOR.API.getAllRecords({
-      appName: APP_NAME,
-      reportName: 'Stock_Catalog_Lookup',
-      page: pageNum,
-      pageSize: 200
+      appName: APP_NAME, reportName: 'Stock_Catalog_Lookup', page: pageNum, pageSize: 200
     }).then(function(resp) {
       var rows = resp.data || [];
       allRows = allRows.concat(rows);
-      if (rows.length === 200) {
-        fetchPage(pageNum + 1, allRows);
-      } else {
-        processRows(allRows);
-        buildShapeDropdown();
-      }
+      if (rows.length === 200) { fetchPage(pageNum + 1, allRows); }
+      else { processRows(allRows); buildShapeDropdown(); }
     }).catch(function(e) {
-      console.error('Stock catalog page ' + pageNum + ' failed:', JSON.stringify(e));
       if (allRows.length > 0) { processRows(allRows); buildShapeDropdown(); }
       else {
         var sel = document.getElementById('sel-shape');
-        sel.innerHTML = '<option value="">Catalog error: ' + (e.code || e.message || JSON.stringify(e)).toString().substring(0, 50) + '</option>';
+        sel.innerHTML = '<option value="">Error loading catalog</option>';
         sel.disabled = false;
       }
     });
@@ -326,34 +338,24 @@ function loadStockCatalog() {
   function processRows(rows) {
     rows.forEach(function(row) {
       var ft = row.Form_Type;
-      var shapeId   = (ft && ft.ID) ? String(ft.ID) : (typeof ft === 'string' && ft ? ft : null);
-      var shapeName = (ft && ft.zc_display_value) ? ft.zc_display_value :
-                      (ft && ft.display_value) ? ft.display_value :
-                      (typeof ft === 'string' ? ft : '');
+      var shapeId   = ft && ft.ID ? String(ft.ID) : (typeof ft === 'string' && ft ? ft : null);
+      var shapeName = ft && ft.zc_display_value ? ft.zc_display_value : ft && ft.display_value ? ft.display_value : (typeof ft === 'string' ? ft : '');
       if (!shapeId || !shapeName) return;
-
       var mt = row.Material_Type;
-      var matId   = (mt && mt.ID) ? String(mt.ID) : (typeof mt === 'string' && mt ? mt : null);
-      var matName = (mt && mt.zc_display_value) ? mt.zc_display_value :
-                    (mt && mt.display_value) ? mt.display_value :
-                    (typeof mt === 'string' ? mt : '');
+      var matId   = mt && mt.ID ? String(mt.ID) : (typeof mt === 'string' && mt ? mt : null);
+      var matName = mt && mt.zc_display_value ? mt.zc_display_value : mt && mt.display_value ? mt.display_value : (typeof mt === 'string' ? mt : '');
       if (!matId || !matName) return;
-
       var td = row.Type_Detail_LU || row.Type_detail_LU || row.Type_Detail || row.Spec;
       var specId = null, specName = '';
       if (td) {
         specId   = td.ID ? String(td.ID) : (typeof td === 'string' && td ? td : null);
-        specName = td.zc_display_value ? td.zc_display_value :
-                   td.display_value ? td.display_value :
-                   (typeof td === 'string' ? td : '');
+        specName = td.zc_display_value ? td.zc_display_value : td.display_value ? td.display_value : (typeof td === 'string' ? td : '');
       }
-
       if (!shapeMap[shapeId]) shapeMap[shapeId] = { name: shapeName, materials: {} };
       if (!shapeMap[shapeId].materials[matId]) shapeMap[shapeId].materials[matId] = { name: matName, specs: {} };
       if (specId && specName) shapeMap[shapeId].materials[matId].specs[specId] = specName;
     });
   }
-
   fetchPage(1, []);
 }
 
@@ -363,15 +365,11 @@ function buildShapeDropdown() {
   var shapes = Object.keys(shapeMap).map(function(id) {
     return { id: id, name: shapeMap[id].name };
   }).sort(function(a, b) { return a.name.localeCompare(b.name); });
-
   sel.innerHTML = '<option value="">All shapes</option>';
   shapes.forEach(function(s) {
-    var opt = document.createElement('option');
-    opt.value = s.id; opt.textContent = s.name;
-    sel.appendChild(opt);
+    var o = document.createElement('option'); o.value = s.id; o.textContent = s.name; sel.appendChild(o);
   });
   sel.disabled = false;
-
   sel.addEventListener('change', onShapeChange);
   document.getElementById('sel-material').addEventListener('change', onMaterialChange);
 
@@ -387,22 +385,17 @@ function buildShapeDropdown() {
 
 function onShapeChange() {
   var shapeId = document.getElementById('sel-shape').value;
-  var matSel  = document.getElementById('sel-material');
+  var matSel = document.getElementById('sel-material');
   var specSel = document.getElementById('sel-spec');
-  matSel.innerHTML  = '<option value="">All materials</option>';
-  specSel.innerHTML = '<option value="">All specs</option>';
-  specSel.disabled  = true;
+  matSel.innerHTML = '<option value="">All materials</option>';
+  specSel.innerHTML = '<option value="">All specs</option>'; specSel.disabled = true;
   if (!shapeId) { matSel.disabled = true; return; }
   var mats = Object.keys(shapeMap[shapeId].materials).map(function(id) {
     return { id: id, name: shapeMap[shapeId].materials[id].name };
   }).sort(function(a, b) { return a.name.localeCompare(b.name); });
-  if (mats.length === 0) { matSel.disabled = true; return; }
+  if (!mats.length) { matSel.disabled = true; return; }
   matSel.disabled = false;
-  mats.forEach(function(m) {
-    var opt = document.createElement('option');
-    opt.value = m.id; opt.textContent = m.name;
-    matSel.appendChild(opt);
-  });
+  mats.forEach(function(m) { var o = document.createElement('option'); o.value = m.id; o.textContent = m.name; matSel.appendChild(o); });
 }
 
 function onMaterialChange() {
@@ -412,16 +405,11 @@ function onMaterialChange() {
   specSel.innerHTML = '<option value="">All specs</option>';
   if (!shapeId || !matId) { specSel.disabled = true; return; }
   var specsObj = shapeMap[shapeId].materials[matId].specs;
-  var specs = Object.keys(specsObj).map(function(id) {
-    return { id: id, name: specsObj[id] };
-  }).sort(function(a, b) { return a.name.localeCompare(b.name); });
-  if (specs.length === 0) { specSel.disabled = true; return; }
+  var specs = Object.keys(specsObj).map(function(id) { return { id: id, name: specsObj[id] }; })
+    .sort(function(a, b) { return a.name.localeCompare(b.name); });
+  if (!specs.length) { specSel.disabled = true; return; }
   specSel.disabled = false;
-  specs.forEach(function(s) {
-    var opt = document.createElement('option');
-    opt.value = s.id; opt.textContent = s.name;
-    specSel.appendChild(opt);
-  });
+  specs.forEach(function(s) { var o = document.createElement('option'); o.value = s.id; o.textContent = s.name; specSel.appendChild(o); });
 }
 
 // ─── Search ───────────────────────────────────────────────────────────────────
@@ -430,9 +418,9 @@ function runSearch() {
   var btn = document.getElementById('search-btn');
   btn.disabled = true; btn.textContent = 'Searching...';
   document.getElementById('results-list').innerHTML = '<div class="status-msg"><span class="loading-dots">Searching</span></div>';
-  document.getElementById('results-header').style.display = 'none';
+  document.getElementById('results-toolbar').style.display = 'none';
 
-  var radius      = parseInt(document.getElementById('radius-custom').value) || parseInt(document.getElementById('radius').value) || 150;
+  var radius      = parseInt(document.getElementById('radius-custom').value) || 150;
   var shapeId     = document.getElementById('sel-shape').value;
   var matId       = document.getElementById('sel-material').value;
   var specId      = document.getElementById('sel-spec').value;
@@ -443,16 +431,15 @@ function runSearch() {
     if (shapeId) params.append('shape',    shapeId);
     if (matId)   params.append('material', matId);
     if (specId)  params.append('spec',     specId);
-    if (checkedCaps.length > 0) params.append('caps', checkedCaps.join(','));
+    if (checkedCaps.length) params.append('caps', checkedCaps.join(','));
     return fetch(RAILWAY + '/api/match-suggestions?' + params.toString());
   }).then(function(resp) {
     if (!resp.ok) return resp.json().then(function(e) { throw new Error(e.error || 'HTTP ' + resp.status); });
     return resp.json();
   }).then(function(data) {
     allResults = data.results || [];
-    applyFiltersAndRender();
+    sortAndRender(allResults);
   }).catch(function(e) {
-    console.error('Search error:', e);
     document.getElementById('results-list').innerHTML = '<div class="status-msg">Search failed: ' + e.message + '</div>';
   }).finally(function() {
     btn.disabled = false; btn.textContent = 'Search';
@@ -462,138 +449,106 @@ function runSearch() {
 // ─── Qualifications ───────────────────────────────────────────────────────────
 function loadSupplierQualifications() {
   return ZOHO.CREATOR.API.getAllRecords({
-    appName: APP_NAME,
-    reportName: 'Disadvantage_Minority_per_Supplier_Report'
+    appName: APP_NAME, reportName: 'Disadvantage_Minority_per_Supplier_Report'
   }).then(function(resp) {
     supplierQualMap = {};
     (resp.data || []).forEach(function(rec) {
-      var supId = (rec.SUPPLIER && rec.SUPPLIER.ID) ? rec.SUPPLIER.ID :
-                  (typeof rec.SUPPLIER === 'string' ? rec.SUPPLIER : null);
-      var qualRaw = rec.Disadvantage_Minority_Business_Status ||
-                    rec['Disadvantage / Minority Business Status'] ||
-                    rec['Disadvantage_Minority_Businesses'] || '';
-      var qual = (qualRaw && typeof qualRaw === 'object')
-                 ? (qualRaw.zc_display_value || qualRaw.display_value || qualRaw.Description || '')
-                 : String(qualRaw || '');
+      var supId = rec.SUPPLIER && rec.SUPPLIER.ID ? rec.SUPPLIER.ID : (typeof rec.SUPPLIER === 'string' ? rec.SUPPLIER : null);
+      var qualRaw = rec.Disadvantage_Minority_Business_Status || rec['Disadvantage / Minority Business Status'] || rec['Disadvantage_Minority_Businesses'] || '';
+      var qual = qualRaw && typeof qualRaw === 'object' ? (qualRaw.zc_display_value || qualRaw.display_value || '') : String(qualRaw || '');
       if (supId && qual && qual !== 'Not Applicable') {
         if (!supplierQualMap[supId]) supplierQualMap[supId] = [];
         supplierQualMap[supId].push(qual);
       }
     });
-  }).catch(function(e) {
-    console.warn('Qualifications load failed:', e);
-    return Promise.resolve();
-  });
+  }).catch(function() { return Promise.resolve(); });
 }
 
-// ─── Filter + Sort + Render ───────────────────────────────────────────────────
-function getChecked(containerId) {
-  return Array.from(document.querySelectorAll('#' + containerId + ' input[type=checkbox]:checked'))
-    .map(function(cb) { return cb.value; });
-}
-
-function applyFiltersAndRender() {
-  allResults._filtered = allResults;
-  sortAndRender(allResults);
+// ─── Render ───────────────────────────────────────────────────────────────────
+function getChecked(id) {
+  return Array.from(document.querySelectorAll('#' + id + ' input[type=checkbox]:checked')).map(function(cb) { return cb.value; });
 }
 
 function hasQualMatch(sup) {
-  var reqQuals = getChecked('qual-filters');
-  if (reqQuals.length === 0) return false;
-  var supQuals = supplierQualMap[sup.id] || [];
-  return reqQuals.some(function(q) {
-    var qStr = String(q || '').toUpperCase();
-    return supQuals.some(function(sq) {
-      var sqUpper = String(sq || '').toUpperCase();
-      return sqUpper === qStr || sqUpper.indexOf(qStr) !== -1;
-    });
+  var req = getChecked('qual-filters');
+  if (!req.length) return false;
+  var sq = supplierQualMap[sup.id] || [];
+  return req.some(function(q) {
+    var qu = q.toUpperCase();
+    return sq.some(function(s) { var su = s.toUpperCase(); return su === qu || su.indexOf(qu) !== -1; });
   });
 }
 
 function sortAndRender(results) {
-  var data     = results || allResults._filtered || allResults;
+  var data     = results || allResults;
   var sort     = document.getElementById('sort-sel').value;
   var reqQuals = getChecked('qual-filters');
   var sorted   = data.slice().sort(function(a, b) {
-    if (reqQuals.length > 0) {
-      var aM = hasQualMatch(a) ? 1 : 0, bM = hasQualMatch(b) ? 1 : 0;
-      if (bM !== aM) return bM - aM;
+    if (reqQuals.length) {
+      var am = hasQualMatch(a) ? 1 : 0, bm = hasQualMatch(b) ? 1 : 0;
+      if (bm !== am) return bm - am;
     }
     if (sort === 'distance') return a.distanceMi - b.distanceMi;
     if (sort === 'stock')    return b.breakdown.stockMatch - a.breakdown.stockMatch;
     return b.score - a.score;
   });
 
-  var header = document.getElementById('results-header');
-  var count  = document.getElementById('results-count');
-  var list   = document.getElementById('results-list');
+  var toolbar = document.getElementById('results-toolbar');
+  var list    = document.getElementById('results-list');
 
-  if (sorted.length === 0) {
-    header.style.display = 'none';
+  if (!sorted.length) {
+    toolbar.style.display = 'none';
     list.innerHTML = '<div class="status-msg">No suppliers found matching your criteria.</div>';
     return;
   }
 
-  header.style.display = 'flex';
-  count.textContent = sorted.length + ' supplier' + (sorted.length !== 1 ? 's' : '') + ' found';
+  toolbar.style.display = 'flex';
+  document.getElementById('results-count').textContent = sorted.length + ' supplier' + (sorted.length !== 1 ? 's' : '') + ' found';
 
   list.innerHTML = sorted.map(function(sup) {
     var score      = sup.score || 0;
     var scoreColor = score >= 60 ? '#1D9E75' : score >= 30 ? '#EF9F27' : '#E24B4A';
-    var circ = 2 * Math.PI * 18;
-    var dash = (score / 100) * circ;
-    var gap  = circ - dash;
+    var circ = 2 * Math.PI * 18, dash = (score / 100) * circ, gap = circ - dash;
 
     var isMatched  = !!existingMatchIds[String(sup.id)];
     var supQuals   = supplierQualMap[sup.id] || [];
-    var qualPills  = supQuals
-      .filter(function(q) { return q && q !== 'Not Applicable'; })
-      .map(function(q) { return '<span class="pill pill-purple">' + String(q).split(' - ')[0] + '</span>'; })
-      .join('');
+    var qualPills  = supQuals.filter(function(q) { return q && q !== 'Not Applicable'; })
+      .map(function(q) { return '<span class="pill pill-purple">' + String(q).split(' - ')[0] + '</span>'; }).join('');
 
     var distColor  = sup.distanceMi < 50 ? '#1D9E75' : sup.distanceMi < 100 ? '#EF9F27' : '#888';
     var stockColor = sup.breakdown.stockMatch > 0 ? '#1D9E75' : '#888';
-    var city  = (sup.address && sup.address.district_city)   ? sup.address.district_city  : '';
-    var state = (sup.address && sup.address.state_province)  ? sup.address.state_province : '';
+    var city  = sup.address && sup.address.district_city   ? sup.address.district_city  : '';
+    var state = sup.address && sup.address.state_province  ? sup.address.state_province : '';
 
-    var cardClass = 'result-card' + (isMatched ? ' already-matched' : '');
-    var matchedBadge = isMatched ? '<span class="matched-badge">✓ Already Matched</span>' : '';
-    var actionBtn = isMatched
-      ? '<button class="btn-action matched" onclick="openMatchEdit(\'' + sup.id + '\')">View match</button>'
-      : '<button class="btn-action primary" onclick="openMatchEdit(\'' + sup.id + '\')">Edit match</button>';
-
-    return '<div class="' + cardClass + '">' +
-      '<div class="score-ring"><svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">' +
+    return '<div class="result-card' + (isMatched ? ' already-matched' : '') + '">' +
+      '<div class="score-ring"><svg viewBox="0 0 48 48">' +
         '<circle cx="24" cy="24" r="18" fill="none" stroke="#e8eaed" stroke-width="4"/>' +
         '<circle cx="24" cy="24" r="18" fill="none" stroke="' + scoreColor + '" stroke-width="4"' +
           ' stroke-dasharray="' + dash.toFixed(1) + ' ' + gap.toFixed(1) + '"' +
           ' stroke-linecap="round" transform="rotate(-90 24 24)"/>' +
-        '<text x="24" y="28" text-anchor="middle" font-size="10" font-weight="600"' +
-          ' fill="' + scoreColor + '" font-family="DM Sans,sans-serif">' + score + '%</text>' +
+        '<text x="24" y="28" text-anchor="middle" font-size="10" font-weight="600" fill="' + scoreColor + '" font-family="DM Sans,sans-serif">' + score + '%</text>' +
       '</svg></div>' +
       '<div class="card-info">' +
-        '<div class="card-name">' + (sup.name || 'Unknown') + matchedBadge + '</div>' +
+        '<div class="card-name">' + (sup.name || 'Unknown') + (isMatched ? '<span class="matched-badge">✓ Matched</span>' : '') + '</div>' +
         '<div class="card-sub">' + city + (city && state ? ', ' : '') + state +
-          ' &nbsp;&middot;&nbsp; ' + sup.distanceMi + ' mi away' +
-          ' &nbsp;&middot;&nbsp; ' + sup.stockCount + ' stocked specs' +
-          ' &nbsp;&middot;&nbsp; ' + sup.capCount + ' capabilities</div>' +
+          ' · ' + sup.distanceMi + ' mi · ' + sup.stockCount + ' specs · ' + sup.capCount + ' capabilities</div>' +
         '<div class="card-pills">' +
-          (sup.breakdown.stockMatch > 0
-            ? '<span class="pill pill-green">Stock match ' + sup.breakdown.stockMatch + '%</span>'
-            : '<span class="pill pill-gray">No stock match</span>') +
+          (sup.breakdown.stockMatch > 0 ? '<span class="pill pill-green">Stock ' + sup.breakdown.stockMatch + '%</span>' : '<span class="pill pill-gray">No stock match</span>') +
           (sup.capCount > 0 ? '<span class="pill pill-blue">' + sup.capCount + ' capabilities</span>' : '') +
           qualPills +
           (sup.distanceMi < 25 ? '<span class="pill pill-teal">Local</span>' : '') +
         '</div>' +
         '<div class="card-breakdown">' +
           '<div class="bd-item"><div class="bd-val" style="color:' + stockColor + '">' + sup.breakdown.stockMatch + '%</div><div class="bd-lbl">Stock</div></div>' +
-          '<div class="bd-item"><div class="bd-val" style="color:#888">' + sup.breakdown.capabilities + '%</div><div class="bd-lbl">Capabilities</div></div>' +
+          '<div class="bd-item"><div class="bd-val" style="color:#888">' + sup.breakdown.capabilities + '%</div><div class="bd-lbl">Capab.</div></div>' +
           '<div class="bd-item"><div class="bd-val" style="color:' + distColor + '">' + sup.breakdown.distance + '%</div><div class="bd-lbl">Distance</div></div>' +
           '<div class="bd-item"><div class="bd-val" style="color:#888">' + sup.breakdown.history + '%</div><div class="bd-lbl">History</div></div>' +
         '</div>' +
       '</div>' +
       '<div class="card-actions">' +
-        actionBtn +
+        (isMatched
+          ? '<button class="btn-action matched" onclick="openMatchEdit(\'' + sup.id + '\')">View match</button>'
+          : '<button class="btn-action primary" onclick="openMatchEdit(\'' + sup.id + '\')">Edit match</button>') +
         '<button class="btn-action" onclick="copyEmail(\'' + (sup.email || '') + '\')">Copy email</button>' +
       '</div>' +
     '</div>';
@@ -603,8 +558,6 @@ function sortAndRender(results) {
 // ─── Actions ──────────────────────────────────────────────────────────────────
 function openMatchEdit(supplierId) {
   var matchRecId = existingMatchRecIds[supplierId] || '';
-  // Post a message to the parent Zoho page — the HTML snippet listens for this
-  // and opens the popup natively using Zoho's openUrl Deluge method
   var msg = {
     type: 'openMatchPage',
     Supplier_Manufacture_Match_ID: matchRecId,

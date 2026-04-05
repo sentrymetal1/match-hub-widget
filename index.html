@@ -15,7 +15,9 @@
     display: flex; align-items: center; justify-content: space-between;
   }
   .mc-header h2 { font-size: 14px; font-weight: 600; letter-spacing: 0.5px; }
-  .mc-header span { font-size: 11px; opacity: 0.8; }
+  .mc-header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+  .mc-header-right .mfg-name { font-size: 12px; font-weight: 600; opacity: 1; }
+  .mc-header-right .mfg-id   { font-size: 10px; opacity: 0.65; }
 
   .filters { background: #fff; border-bottom: 1px solid #e0e4ea; padding: 12px 16px; }
   .filter-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 8px; }
@@ -23,7 +25,6 @@
   .filter-group label { font-size: 11px; color: #666; font-weight: 500; }
   .filter-group select { height: 30px; border: 1px solid #cdd2da; border-radius: 4px; padding: 0 8px; font-size: 12px; background: #fff; color: #1a1a1a; min-width: 130px; }
   .filter-group select:disabled { background: #f5f6f8; color: #aaa; }
-  .radius-display { font-size: 12px; font-weight: 600; color: #5F94CE; min-width: 50px; }
 
   .filter-toggles { display: flex; gap: 8px; flex-wrap: wrap; }
   .toggle-section { background: #f8f9fb; border: 1px solid #e0e4ea; border-radius: 6px; padding: 8px 12px; flex: 1; min-width: 200px; }
@@ -51,10 +52,13 @@
     display: flex; align-items: flex-start; gap: 12px; transition: box-shadow 0.15s;
   }
   .result-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .result-card.already-matched { border-left: 3px solid #1D9E75; }
+
   .score-ring { flex-shrink: 0; width: 48px; height: 48px; }
   .score-ring svg { width: 48px; height: 48px; }
   .card-info { flex: 1; min-width: 0; }
-  .card-name { font-size: 14px; font-weight: 600; color: #1a1a1a; }
+  .card-name { font-size: 14px; font-weight: 600; color: #1a1a1a; display: flex; align-items: center; gap: 8px; }
+  .matched-badge { font-size: 10px; font-weight: 600; background: #E1F5EE; color: #085041; border: 1px solid #b2dfdb; border-radius: 20px; padding: 2px 8px; white-space: nowrap; }
   .card-sub { font-size: 11px; color: #888; margin-top: 2px; }
   .card-pills { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
   .pill { font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
@@ -71,16 +75,31 @@
   .btn-action { font-size: 11px; font-weight: 500; padding: 5px 12px; border-radius: 4px; cursor: pointer; white-space: nowrap; border: 1px solid #cdd2da; background: #fff; color: #1a1a1a; }
   .btn-action.primary { background: #5F94CE; color: #fff; border-color: #5F94CE; }
   .btn-action.primary:hover { background: #4a7eb5; }
+  .btn-action.matched { background: #f0faf6; color: #085041; border-color: #b2dfdb; }
   .status-msg { text-align: center; padding: 30px; color: #888; font-size: 13px; }
   .loading-dots::after { content: '...'; animation: dots 1.2s steps(4,end) infinite; }
   @keyframes dots { 0%,20%{content:''} 40%{content:'.'} 60%{content:'..'} 80%,100%{content:'...'} }
+
+  /* Toast notification */
+  #toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: #1a1a1a; color: #fff; padding: 8px 18px; border-radius: 6px;
+    font-size: 12px; font-weight: 500; opacity: 0; pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s; z-index: 9999; white-space: nowrap;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #toast.success { background: #1D9E75; }
+  #toast.error   { background: #E24B4A; }
 </style>
 </head>
 <body>
 
 <div class="mc-header">
   <h2>Match Hub — AI Supplier Suggestions</h2>
-  <span id="mfg-label">Loading...</span>
+  <div class="mc-header-right">
+    <span class="mfg-name" id="mfg-name">Loading...</span>
+    <span class="mfg-id"   id="mfg-label"></span>
+  </div>
 </div>
 
 <div class="filters">
@@ -161,6 +180,8 @@
   </div>
 </div>
 
+<div id="toast"></div>
+
 <script>
 var RAILWAY  = 'https://material-compass-nesting-app-production.up.railway.app';
 var APP_NAME = 'type-formsheet-2-18-21';
@@ -168,9 +189,18 @@ var APP_NAME = 'type-formsheet-2-18-21';
 var mfgId = null;
 var allResults = [];
 var supplierQualMap = {};
+var existingMatchIds = {}; // supplier IDs already matched with this MFG
 
-// shapeMap[shapeId] = { name, materials: { matId: { name, specs: { specId: specName } } } }
 var shapeMap = {};
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+function showToast(msg, type) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show' + (type ? ' ' + type : '');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function() { t.className = ''; }, 2800);
+}
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 ZOHO.CREATOR.init().then(function() {
@@ -178,50 +208,83 @@ ZOHO.CREATOR.init().then(function() {
   loadStockCatalog();
 }).catch(function(e) {
   console.error('ZOHO init failed:', JSON.stringify(e));
-  document.getElementById('mfg-label').textContent = 'Init error';
-  loadStockCatalog(); // still try
+  document.getElementById('mfg-name').textContent = 'Init error';
+  loadStockCatalog();
 });
 
 // ─── MFG identity ─────────────────────────────────────────────────────────────
 function loadMfgId() {
-  // 1. Try getQueryParams (button-triggered widget params)
   try {
     var params = ZOHO.CREATOR.UTIL.getQueryParams();
     if (params && params.Manufacture_ID) {
       mfgId = String(params.Manufacture_ID);
-      document.getElementById('mfg-label').textContent = 'MFG: ' + mfgId;
+      loadMfgName();
       return;
     }
-  } catch(e) {
-    console.warn('getQueryParams failed:', e);
-  }
+  } catch(e) { console.warn('getQueryParams failed:', e); }
 
-  // 2. Try parent page URL (page reloaded with ?Manufacture_ID=XXXXX)
   try {
     var href = window.parent.location.href;
     var match = href.match(/[?&]Manufacture_ID=([^&]+)/);
     if (match && match[1]) {
       mfgId = match[1];
-      document.getElementById('mfg-label').textContent = 'MFG: ' + mfgId;
+      loadMfgName();
       return;
     }
-  } catch(e) {
-    console.warn('Parent URL read failed:', e);
-  }
+  } catch(e) { console.warn('Parent URL read failed:', e); }
 
-  // 3. Try current widget URL
   try {
-    var selfHref = window.location.href;
-    var selfMatch = selfHref.match(/[?&]Manufacture_ID=([^&]+)/);
+    var selfMatch = window.location.href.match(/[?&]Manufacture_ID=([^&]+)/);
     if (selfMatch && selfMatch[1]) {
       mfgId = selfMatch[1];
-      document.getElementById('mfg-label').textContent = 'MFG: ' + mfgId;
+      loadMfgName();
       return;
     }
   } catch(e) {}
 
-  document.getElementById('mfg-label').textContent = 'No MFG ID';
+  document.getElementById('mfg-name').textContent = 'No MFG ID';
   console.warn('Could not find Manufacture_ID in any source');
+}
+
+// ─── Load MFG company name + existing matches ──────────────────────────────
+function loadMfgName() {
+  document.getElementById('mfg-label').textContent = 'ID: ' + mfgId;
+
+  // Load company name
+  ZOHO.CREATOR.API.getAllRecords({
+    appName: APP_NAME,
+    reportName: 'Customer_Entry_Report',
+    criteria: 'ID == "' + mfgId + '"',
+    page: 1,
+    pageSize: 1
+  }).then(function(resp) {
+    var rec = resp.data && resp.data[0];
+    if (rec) {
+      var name = rec.Company_Name || rec.Manufacture_Name || rec.Name || ('MFG ' + mfgId);
+      document.getElementById('mfg-name').textContent = name;
+    } else {
+      document.getElementById('mfg-name').textContent = 'MFG ' + mfgId;
+    }
+  }).catch(function() {
+    document.getElementById('mfg-name').textContent = 'MFG ' + mfgId;
+  });
+
+  // Load existing matches for this MFG so we can badge already-matched suppliers
+  ZOHO.CREATOR.API.getAllRecords({
+    appName: APP_NAME,
+    reportName: 'Manufacture_Supplier_Existing_Match_Report',
+    page: 1,
+    pageSize: 200
+  }).then(function(resp) {
+    existingMatchIds = {};
+    (resp.data || []).forEach(function(rec) {
+      var supId = rec.SUPPLIER && rec.SUPPLIER.ID ? String(rec.SUPPLIER.ID) :
+                  typeof rec.SUPPLIER === 'string' ? rec.SUPPLIER : null;
+      if (supId) existingMatchIds[supId] = true;
+    });
+  }).catch(function(e) {
+    console.warn('Existing matches load failed:', e);
+  });
 }
 
 // ─── Load Stocked_Material_List for cascading dropdowns ───────────────────────
@@ -246,10 +309,8 @@ function loadStockCatalog() {
       }
     }).catch(function(e) {
       console.error('Stock catalog page ' + pageNum + ' failed:', JSON.stringify(e));
-      if (allRows.length > 0) {
-        processRows(allRows);
-        buildShapeDropdown();
-      } else {
+      if (allRows.length > 0) { processRows(allRows); buildShapeDropdown(); }
+      else {
         var sel = document.getElementById('sel-shape');
         sel.innerHTML = '<option value="">Catalog error: ' + (e.code || e.message || JSON.stringify(e)).toString().substring(0, 50) + '</option>';
         sel.disabled = false;
@@ -276,9 +337,9 @@ function loadStockCatalog() {
       var td = row.Type_Detail_LU || row.Type_detail_LU || row.Type_Detail || row.Spec;
       var specId = null, specName = '';
       if (td) {
-        specId   = (td.ID) ? String(td.ID) : (typeof td === 'string' && td ? td : null);
-        specName = (td.zc_display_value) ? td.zc_display_value :
-                   (td.display_value) ? td.display_value :
+        specId   = td.ID ? String(td.ID) : (typeof td === 'string' && td ? td : null);
+        specName = td.zc_display_value ? td.zc_display_value :
+                   td.display_value ? td.display_value :
                    (typeof td === 'string' ? td : '');
       }
 
@@ -301,53 +362,40 @@ function buildShapeDropdown() {
   sel.innerHTML = '<option value="">All shapes</option>';
   shapes.forEach(function(s) {
     var opt = document.createElement('option');
-    opt.value = s.id;
-    opt.textContent = s.name;
+    opt.value = s.id; opt.textContent = s.name;
     sel.appendChild(opt);
   });
   sel.disabled = false;
 
   sel.addEventListener('change', onShapeChange);
   document.getElementById('sel-material').addEventListener('change', onMaterialChange);
+
   var radiusSlider = document.getElementById('radius');
   var radiusCustom = document.getElementById('radius-custom');
-
-  radiusSlider.addEventListener('input', function(e) {
-    radiusCustom.value = e.target.value;
-  });
-
+  radiusSlider.addEventListener('input', function(e) { radiusCustom.value = e.target.value; });
   radiusCustom.addEventListener('input', function(e) {
     var val = parseInt(e.target.value) || 150;
-    if (val < 1) val = 1;
-    if (val > 9999) val = 9999;
-    // Clamp slider to its max
+    if (val < 1) val = 1; if (val > 9999) val = 9999;
     radiusSlider.value = Math.min(val, 3000);
   });
-
-  console.log('Shapes loaded:', shapes.length);
 }
 
 function onShapeChange() {
   var shapeId = document.getElementById('sel-shape').value;
   var matSel  = document.getElementById('sel-material');
   var specSel = document.getElementById('sel-spec');
-
   matSel.innerHTML  = '<option value="">All materials</option>';
   specSel.innerHTML = '<option value="">All specs</option>';
   specSel.disabled  = true;
-
   if (!shapeId) { matSel.disabled = true; return; }
-
   var mats = Object.keys(shapeMap[shapeId].materials).map(function(id) {
     return { id: id, name: shapeMap[shapeId].materials[id].name };
   }).sort(function(a, b) { return a.name.localeCompare(b.name); });
-
   if (mats.length === 0) { matSel.disabled = true; return; }
   matSel.disabled = false;
   mats.forEach(function(m) {
     var opt = document.createElement('option');
-    opt.value = m.id;
-    opt.textContent = m.name;
+    opt.value = m.id; opt.textContent = m.name;
     matSel.appendChild(opt);
   });
 }
@@ -356,38 +404,33 @@ function onMaterialChange() {
   var shapeId = document.getElementById('sel-shape').value;
   var matId   = document.getElementById('sel-material').value;
   var specSel = document.getElementById('sel-spec');
-
   specSel.innerHTML = '<option value="">All specs</option>';
   if (!shapeId || !matId) { specSel.disabled = true; return; }
-
   var specsObj = shapeMap[shapeId].materials[matId].specs;
   var specs = Object.keys(specsObj).map(function(id) {
     return { id: id, name: specsObj[id] };
   }).sort(function(a, b) { return a.name.localeCompare(b.name); });
-
   if (specs.length === 0) { specSel.disabled = true; return; }
   specSel.disabled = false;
   specs.forEach(function(s) {
     var opt = document.createElement('option');
-    opt.value = s.id;
-    opt.textContent = s.name;
+    opt.value = s.id; opt.textContent = s.name;
     specSel.appendChild(opt);
   });
 }
 
 // ─── Search ───────────────────────────────────────────────────────────────────
 function runSearch() {
-  if (!mfgId) { alert('MFG ID not loaded yet. Please wait.'); return; }
+  if (!mfgId) { showToast('MFG ID not loaded yet. Please wait.', 'error'); return; }
   var btn = document.getElementById('search-btn');
-  btn.disabled = true;
-  btn.textContent = 'Searching...';
+  btn.disabled = true; btn.textContent = 'Searching...';
   document.getElementById('results-list').innerHTML = '<div class="status-msg"><span class="loading-dots">Searching</span></div>';
   document.getElementById('results-header').style.display = 'none';
 
-  var radius  = parseInt(document.getElementById('radius-custom').value) || parseInt(document.getElementById('radius').value) || 150;
-  var shapeId = document.getElementById('sel-shape').value;
-  var matId   = document.getElementById('sel-material').value;
-  var specId  = document.getElementById('sel-spec').value;
+  var radius      = parseInt(document.getElementById('radius-custom').value) || parseInt(document.getElementById('radius').value) || 150;
+  var shapeId     = document.getElementById('sel-shape').value;
+  var matId       = document.getElementById('sel-material').value;
+  var specId      = document.getElementById('sel-spec').value;
   var checkedCaps = getChecked('cap-filters');
 
   loadSupplierQualifications().then(function() {
@@ -396,7 +439,6 @@ function runSearch() {
     if (matId)   params.append('material', matId);
     if (specId)  params.append('spec',     specId);
     if (checkedCaps.length > 0) params.append('caps', checkedCaps.join(','));
-
     return fetch(RAILWAY + '/api/match-suggestions?' + params.toString());
   }).then(function(resp) {
     if (!resp.ok) return resp.json().then(function(e) { throw new Error(e.error || 'HTTP ' + resp.status); });
@@ -408,8 +450,7 @@ function runSearch() {
     console.error('Search error:', e);
     document.getElementById('results-list').innerHTML = '<div class="status-msg">Search failed: ' + e.message + '</div>';
   }).finally(function() {
-    btn.disabled = false;
-    btn.textContent = 'Search';
+    btn.disabled = false; btn.textContent = 'Search';
   });
 }
 
@@ -421,11 +462,8 @@ function loadSupplierQualifications() {
   }).then(function(resp) {
     supplierQualMap = {};
     (resp.data || []).forEach(function(rec) {
-      // SUPPLIER field is a lookup object
       var supId = (rec.SUPPLIER && rec.SUPPLIER.ID) ? rec.SUPPLIER.ID :
                   (typeof rec.SUPPLIER === 'string' ? rec.SUPPLIER : null);
-      // Try both field link name and display name variations
-      // Field returns as a lookup object — extract display_value
       var qualRaw = rec.Disadvantage_Minority_Business_Status ||
                     rec['Disadvantage / Minority Business Status'] ||
                     rec['Disadvantage_Minority_Businesses'] || '';
@@ -450,15 +488,8 @@ function getChecked(containerId) {
 }
 
 function applyFiltersAndRender() {
-  var reqCaps  = getChecked('cap-filters');
-  var reqQuals = getChecked('qual-filters');
-
-  // Caps and quals are scoring signals only — no hard filtering.
-  // Radius is the only hard gate (handled by Railway).
-  var filtered = allResults;
-
-  allResults._filtered = filtered;
-  sortAndRender(filtered);
+  allResults._filtered = allResults;
+  sortAndRender(allResults);
 }
 
 function hasQualMatch(sup) {
@@ -469,23 +500,20 @@ function hasQualMatch(sup) {
     var qStr = String(q || '').toUpperCase();
     return supQuals.some(function(sq) {
       var sqUpper = String(sq || '').toUpperCase();
-      return sqUpper === qStr || sqUpper.indexOf(qStr + ' ') === 0 || sqUpper.indexOf(qStr + '-') === 0 || sqUpper.indexOf(qStr) !== -1;
+      return sqUpper === qStr || sqUpper.indexOf(qStr) !== -1;
     });
   });
 }
 
 function sortAndRender(results) {
-  var data    = results || allResults._filtered || allResults;
-  var sort    = document.getElementById('sort-sel').value;
+  var data     = results || allResults._filtered || allResults;
+  var sort     = document.getElementById('sort-sel').value;
   var reqQuals = getChecked('qual-filters');
-  var sorted  = data.slice().sort(function(a, b) {
-    // If quals are selected: matching suppliers always sort above non-matching
+  var sorted   = data.slice().sort(function(a, b) {
     if (reqQuals.length > 0) {
-      var aMatch = hasQualMatch(a) ? 1 : 0;
-      var bMatch = hasQualMatch(b) ? 1 : 0;
-      if (bMatch !== aMatch) return bMatch - aMatch;
+      var aM = hasQualMatch(a) ? 1 : 0, bM = hasQualMatch(b) ? 1 : 0;
+      if (bM !== aM) return bM - aM;
     }
-    // Within each qual group (or when no quals selected): sort by chosen criteria
     if (sort === 'distance') return a.distanceMi - b.distanceMi;
     if (sort === 'stock')    return b.breakdown.stockMatch - a.breakdown.stockMatch;
     return b.score - a.score;
@@ -511,18 +539,25 @@ function sortAndRender(results) {
     var dash = (score / 100) * circ;
     var gap  = circ - dash;
 
-    var supQuals  = supplierQualMap[sup.id] || [];
-    var qualPills = supQuals
+    var isMatched  = !!existingMatchIds[String(sup.id)];
+    var supQuals   = supplierQualMap[sup.id] || [];
+    var qualPills  = supQuals
       .filter(function(q) { return q && q !== 'Not Applicable'; })
-      .map(function(q) { var qs = String(q || ''); return '<span class="pill pill-purple">' + qs.split(' - ')[0] + '</span>'; })
+      .map(function(q) { return '<span class="pill pill-purple">' + String(q).split(' - ')[0] + '</span>'; })
       .join('');
 
     var distColor  = sup.distanceMi < 50 ? '#1D9E75' : sup.distanceMi < 100 ? '#EF9F27' : '#888';
     var stockColor = sup.breakdown.stockMatch > 0 ? '#1D9E75' : '#888';
-    var city = (sup.address && sup.address.district_city) ? sup.address.district_city : '';
-    var state = (sup.address && sup.address.state_province) ? sup.address.state_province : '';
+    var city  = (sup.address && sup.address.district_city)   ? sup.address.district_city  : '';
+    var state = (sup.address && sup.address.state_province)  ? sup.address.state_province : '';
 
-    return '<div class="result-card">' +
+    var cardClass = 'result-card' + (isMatched ? ' already-matched' : '');
+    var matchedBadge = isMatched ? '<span class="matched-badge">✓ Already Matched</span>' : '';
+    var actionBtn = isMatched
+      ? '<button class="btn-action matched" onclick="openMatchEdit(\'' + sup.id + '\')">View match</button>'
+      : '<button class="btn-action primary" onclick="openMatchEdit(\'' + sup.id + '\')">Edit match</button>';
+
+    return '<div class="' + cardClass + '">' +
       '<div class="score-ring"><svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">' +
         '<circle cx="24" cy="24" r="18" fill="none" stroke="#e8eaed" stroke-width="4"/>' +
         '<circle cx="24" cy="24" r="18" fill="none" stroke="' + scoreColor + '" stroke-width="4"' +
@@ -532,7 +567,7 @@ function sortAndRender(results) {
           ' fill="' + scoreColor + '" font-family="DM Sans,sans-serif">' + score + '%</text>' +
       '</svg></div>' +
       '<div class="card-info">' +
-        '<div class="card-name">' + (sup.name || 'Unknown') + '</div>' +
+        '<div class="card-name">' + (sup.name || 'Unknown') + matchedBadge + '</div>' +
         '<div class="card-sub">' + city + (city && state ? ', ' : '') + state +
           ' &nbsp;&middot;&nbsp; ' + sup.distanceMi + ' mi away' +
           ' &nbsp;&middot;&nbsp; ' + sup.stockCount + ' stocked specs' +
@@ -553,7 +588,7 @@ function sortAndRender(results) {
         '</div>' +
       '</div>' +
       '<div class="card-actions">' +
-        '<button class="btn-action primary" onclick="openMatchEdit(\'' + sup.id + '\')">Edit match</button>' +
+        actionBtn +
         '<button class="btn-action" onclick="copyEmail(\'' + (sup.email || '') + '\')">Copy email</button>' +
       '</div>' +
     '</div>';
@@ -566,9 +601,9 @@ function openMatchEdit(supplierId) {
 }
 
 function copyEmail(email) {
-  if (!email) return;
+  if (!email) { showToast('No email on file for this supplier', 'error'); return; }
   navigator.clipboard.writeText(email)
-    .then(function() { alert('Email copied: ' + email); })
+    .then(function() { showToast('Email copied: ' + email, 'success'); })
     .catch(function() { prompt('Copy this email:', email); });
 }
 </script>

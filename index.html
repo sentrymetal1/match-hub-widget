@@ -31,6 +31,18 @@
     overflow-y: auto; padding: 14px 12px; gap: 14px;
   }
 
+  /* ── Mode toggle (Structural / Fittings) ── */
+  .mode-toggle {
+    display: flex; background: #eef1f5; border-radius: 6px; padding: 3px; gap: 3px; flex-shrink: 0;
+  }
+  .mode-toggle button {
+    flex: 1; border: none; background: transparent; color: #66707d;
+    font-size: 11px; font-weight: 600; padding: 6px 0; border-radius: 4px; cursor: pointer;
+    letter-spacing: 0.3px; transition: background 0.12s, color 0.12s;
+  }
+  .mode-toggle button.active { background: #5F94CE; color: #fff; box-shadow: 0 1px 2px rgba(15,34,64,0.18); }
+  .mode-toggle button:not(.active):hover { color: #1a1a1a; }
+
   .filter-section { display: flex; flex-direction: column; gap: 6px; }
   .filter-section-title {
     font-size: 10px; font-weight: 700; color: #5F94CE;
@@ -205,6 +217,11 @@
   <!-- Left panel -->
   <div class="left-panel">
 
+    <div class="mode-toggle">
+      <button id="mode-structural" class="active" onclick="setMode('structural')">Structural</button>
+      <button id="mode-fittings" onclick="setMode('fittings')">Fittings</button>
+    </div>
+
     <div class="filter-section">
       <div class="filter-section-title">Search Radius</div>
       <div class="radius-row">
@@ -214,7 +231,7 @@
       </div>
     </div>
 
-    <div class="filter-section">
+    <div class="filter-section" id="struct-filter">
       <div class="filter-section-title">Material Filter</div>
       <div class="filter-group">
         <label>Shape</label>
@@ -227,6 +244,30 @@
       <div class="filter-group">
         <label>Spec</label>
         <select id="sel-spec" disabled><option value="">— select material —</option></select>
+      </div>
+    </div>
+
+    <div class="filter-section" id="fitting-filter" style="display:none">
+      <div class="filter-section-title">Fitting Filter</div>
+      <div class="filter-group">
+        <label>Fitting Type</label>
+        <select id="sel-ft-type" disabled><option value="">Loading...</option></select>
+      </div>
+      <div class="filter-group">
+        <label>End Type</label>
+        <select id="sel-ft-end" disabled><option value="">— select type —</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Connection</label>
+        <select id="sel-ft-conn" disabled><option value="">— select type —</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Make</label>
+        <select id="sel-ft-make" disabled><option value="">All makes</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Specification</label>
+        <select id="sel-ft-spec" disabled><option value="">— select make —</option></select>
       </div>
     </div>
 
@@ -292,6 +333,8 @@
 <script>
 var RAILWAY  = 'https://material-compass-nesting-app-production.up.railway.app';
 var APP_NAME = 'type-formsheet-2-18-21';
+var BUILD_TAG = 'match-hub 2026-06-21 fittings-mode';
+console.log('[Match Hub] build:', BUILD_TAG);
 
 var mfgId = null;
 var allResults = [];
@@ -299,6 +342,9 @@ var supplierQualMap = {};
 var existingMatchIds    = {};
 var existingMatchRecIds = {};
 var shapeMap = {};
+var searchMode = 'structural';
+var fittingCatalog = null;   // { types, makes, ends, connections, specs }
+var fittingCatalogLoaded = false;
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
 function showToast(msg, type) {
@@ -463,6 +509,82 @@ function onMaterialChange() {
   specs.forEach(function(s) { var o = document.createElement('option'); o.value = s.id; o.textContent = s.name; specSel.appendChild(o); });
 }
 
+// ─── Mode toggle (Structural / Fittings) ───────────────────────────────────────
+function setMode(mode) {
+  if (mode === searchMode) return;
+  searchMode = mode;
+  document.getElementById('mode-structural').classList.toggle('active', mode === 'structural');
+  document.getElementById('mode-fittings').classList.toggle('active', mode === 'fittings');
+  document.getElementById('struct-filter').style.display  = mode === 'structural' ? 'flex' : 'none';
+  document.getElementById('fitting-filter').style.display = mode === 'fittings'   ? 'flex' : 'none';
+  // Clear prior results so a structural list isn't mistaken for fittings (and vice-versa)
+  allResults = [];
+  document.getElementById('results-toolbar').style.display = 'none';
+  document.getElementById('results-list').innerHTML =
+    '<div class="status-msg">Set your radius and filters,<br>then click <strong>Search</strong> to find matching suppliers.</div>';
+  if (mode === 'fittings' && !fittingCatalogLoaded) loadFittingCatalog();
+}
+
+// ─── Fitting catalog (cascade dropdowns) ────────────────────────────────────────
+function loadFittingCatalog() {
+  fittingCatalogLoaded = true;
+  var typeSel = document.getElementById('sel-ft-type');
+  typeSel.innerHTML = '<option value="">Loading...</option>';
+  fetch(RAILWAY + '/api/fitting-catalog')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data || !data.ok || !data.catalog) throw new Error((data && data.error) || 'no catalog');
+      fittingCatalog = data.catalog;
+      buildFittingDropdowns();
+    })
+    .catch(function(e) {
+      fittingCatalogLoaded = false;
+      typeSel.innerHTML = '<option value="">Error loading catalog</option>';
+      typeSel.disabled = false;
+      console.error('Fitting catalog load failed:', e);
+    });
+}
+
+function fillSelect(sel, items, placeholder) {
+  sel.innerHTML = '';
+  var o0 = document.createElement('option'); o0.value = ''; o0.textContent = placeholder; sel.appendChild(o0);
+  items.slice().sort(function(a, b) { return a.name.localeCompare(b.name); }).forEach(function(it) {
+    var o = document.createElement('option'); o.value = it.id; o.textContent = it.name; sel.appendChild(o);
+  });
+}
+
+function buildFittingDropdowns() {
+  var c = fittingCatalog;
+  fillSelect(document.getElementById('sel-ft-type'), c.types, 'All types');
+  document.getElementById('sel-ft-type').disabled = false;
+  fillSelect(document.getElementById('sel-ft-make'), c.makes, 'All makes');
+  document.getElementById('sel-ft-make').disabled = false;
+
+  document.getElementById('sel-ft-type').addEventListener('change', onFitTypeChange);
+  document.getElementById('sel-ft-make').addEventListener('change', onFitMakeChange);
+}
+
+function onFitTypeChange() {
+  var typeId = document.getElementById('sel-ft-type').value;
+  var endSel  = document.getElementById('sel-ft-end');
+  var connSel = document.getElementById('sel-ft-conn');
+  // End / Connection options carry a type_id; blank type_id = applies to all types.
+  var ends  = fittingCatalog.ends.filter(function(e)  { return !typeId || !e.type_id || e.type_id === typeId; });
+  var conns = fittingCatalog.connections.filter(function(c) { return !typeId || !c.type_id || c.type_id === typeId; });
+  fillSelect(endSel,  ends,  'All end types');
+  fillSelect(connSel, conns, 'All connections');
+  endSel.disabled  = !ends.length;
+  connSel.disabled = !conns.length;
+}
+
+function onFitMakeChange() {
+  var makeId = document.getElementById('sel-ft-make').value;
+  var specSel = document.getElementById('sel-ft-spec');
+  var specs = fittingCatalog.specs.filter(function(s) { return !makeId || !s.make_id || s.make_id === makeId; });
+  fillSelect(specSel, specs, makeId ? 'All specs' : '— select make —');
+  specSel.disabled = !makeId || !specs.length;
+}
+
 // ─── Search ───────────────────────────────────────────────────────────────────
 function runSearch() {
   if (!mfgId) { showToast('MFG ID not loaded yet. Please wait.', 'error'); return; }
@@ -472,16 +594,30 @@ function runSearch() {
   document.getElementById('results-toolbar').style.display = 'none';
 
   var radius      = parseInt(document.getElementById('radius-custom').value) || 150;
-  var shapeId     = document.getElementById('sel-shape').value;
-  var matId       = document.getElementById('sel-material').value;
-  var specId      = document.getElementById('sel-spec').value;
   var checkedCaps = getChecked('cap-filters');
 
   loadSupplierQualifications().then(function() {
     var params = new URLSearchParams({ mfg_id: mfgId, radius: radius });
-    if (shapeId) params.append('shape',    shapeId);
-    if (matId)   params.append('material', matId);
-    if (specId)  params.append('spec',     specId);
+    if (searchMode === 'fittings') {
+      params.append('mode', 'fittings');
+      var ftType = document.getElementById('sel-ft-type').value;
+      var ftEnd  = document.getElementById('sel-ft-end').value;
+      var ftConn = document.getElementById('sel-ft-conn').value;
+      var ftMake = document.getElementById('sel-ft-make').value;
+      var ftSpec = document.getElementById('sel-ft-spec').value;
+      if (ftType) params.append('ft_type', ftType);
+      if (ftEnd)  params.append('ft_end',  ftEnd);
+      if (ftConn) params.append('ft_conn', ftConn);
+      if (ftMake) params.append('ft_make', ftMake);
+      if (ftSpec) params.append('ft_spec', ftSpec);
+    } else {
+      var shapeId = document.getElementById('sel-shape').value;
+      var matId   = document.getElementById('sel-material').value;
+      var specId  = document.getElementById('sel-spec').value;
+      if (shapeId) params.append('shape',    shapeId);
+      if (matId)   params.append('material', matId);
+      if (specId)  params.append('spec',     specId);
+    }
     if (checkedCaps.length) params.append('caps', checkedCaps.join(','));
     return fetch(RAILWAY + '/api/match-suggestions?' + params.toString());
   }).then(function(resp) {
@@ -555,6 +691,7 @@ function sortAndRender(results) {
 
   toolbar.style.display = 'flex';
   document.getElementById('results-count').textContent = sorted.length + ' supplier' + (sorted.length !== 1 ? 's' : '') + ' found';
+  var stockUnit = searchMode === 'fittings' ? 'fittings' : 'specs';
 
   list.innerHTML = sorted.map(function(sup) {
     var score      = sup.score || 0;
@@ -582,7 +719,7 @@ function sortAndRender(results) {
       '<div class="card-info">' +
         '<div class="card-name">' + (sup.name || 'Unknown') + (isMatched ? '<span class="matched-badge">✓ Matched</span>' : '') + '</div>' +
         '<div class="card-sub">' + city + (city && state ? ', ' : '') + state +
-          ' · ' + sup.distanceMi + ' mi · ' + sup.stockCount + ' specs · ' + sup.capCount + ' capabilities</div>' +
+          ' · ' + sup.distanceMi + ' mi · ' + sup.stockCount + ' ' + stockUnit + ' · ' + sup.capCount + ' capabilities</div>' +
         '<div class="card-pills">' +
           (sup.breakdown.stockMatch > 0 ? '<span class="pill pill-green">Stock ' + sup.breakdown.stockMatch + '%</span>' : '<span class="pill pill-gray">No stock match</span>') +
           (sup.capCount > 0 ? '<span class="pill pill-blue">' + sup.capCount + ' capabilities</span>' : '') +
@@ -604,7 +741,7 @@ function sortAndRender(results) {
         '<div class="tt-section">' +
           '<div class="tt-label">Match Details</div>' +
           '<div class="tt-row"><span>Distance</span><strong>' + sup.distanceMi + ' mi</strong></div>' +
-          '<div class="tt-row"><span>Stock matches</span><strong>' + sup.stockCount + ' specs</strong></div>' +
+          '<div class="tt-row"><span>Stock matches</span><strong>' + sup.stockCount + ' ' + stockUnit + '</strong></div>' +
           '<div class="tt-row"><span>Capabilities</span><strong>' + sup.capCount + '</strong></div>' +
           '<div class="tt-row"><span>Stock score</span><strong>' + sup.breakdown.stockMatch + '%</strong></div>' +
           '<div class="tt-row"><span>History score</span><strong>' + sup.breakdown.history + '%</strong></div>' +

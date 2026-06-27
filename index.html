@@ -333,7 +333,7 @@
 <script>
 var RAILWAY  = 'https://material-compass-nesting-app-production.up.railway.app';
 var APP_NAME = 'type-formsheet-2-18-21';
-var BUILD_TAG = 'match-hub 2026-06-21 fittings-mode';
+var BUILD_TAG = 'match-hub 2026-06-27 dm-breakdown';
 console.log('[Match Hub] build:', BUILD_TAG);
 
 var mfgId = null;
@@ -700,8 +700,11 @@ function sortAndRender(results) {
 
     var isMatched  = !!existingMatchIds[String(sup.id)];
     var supQuals   = supplierQualMap[sup.id] || [];
-    var qualPills  = supQuals.filter(function(q) { return q && q !== 'Not Applicable'; })
+    var activeQuals = supQuals.filter(function(q) { return q && q !== 'Not Applicable'; });
+    var qualPills  = activeQuals
       .map(function(q) { return '<span class="pill pill-purple">' + String(q).split(' - ')[0] + '</span>'; }).join('');
+    var dmPct      = activeQuals.length > 0 ? 100 : 0;
+    var dmColor    = dmPct > 0 ? '#3C3489' : '#888';
 
     var distColor  = sup.distanceMi < 50 ? '#1D9E75' : sup.distanceMi < 100 ? '#EF9F27' : '#888';
     var stockColor = sup.breakdown.stockMatch > 0 ? '#1D9E75' : '#888';
@@ -731,6 +734,7 @@ function sortAndRender(results) {
           '<div class="bd-item"><div class="bd-val" style="color:#888">' + sup.breakdown.capabilities + '%</div><div class="bd-lbl">Capab.</div></div>' +
           '<div class="bd-item"><div class="bd-val" style="color:' + distColor + '">' + sup.breakdown.distance + '%</div><div class="bd-lbl">Distance</div></div>' +
           '<div class="bd-item"><div class="bd-val" style="color:#888">' + sup.breakdown.history + '%</div><div class="bd-lbl">History</div></div>' +
+          '<div class="bd-item"><div class="bd-val" style="color:' + dmColor + '">' + dmPct + '%</div><div class="bd-lbl">D/M</div></div>' +
         '</div>' +
       '</div>' +
       '<div class="w-card-tooltip">' +

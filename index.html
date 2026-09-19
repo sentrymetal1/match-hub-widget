@@ -333,7 +333,7 @@
 <script>
 var RAILWAY  = 'https://material-compass-nesting-app-production.up.railway.app';
 var APP_NAME = 'type-formsheet-2-18-21';
-var BUILD_TAG = 'match-hub 2026-06-27 dm-breakdown';
+var BUILD_TAG = 'match-hub 2026-09-19 no-native-dialogs';
 console.log('[Match Hub] build:', BUILD_TAG);
 
 var mfgId = null;
@@ -777,7 +777,18 @@ function copyEmail(email) {
   if (!email) { showToast('No email on file for this supplier', 'error'); return; }
   navigator.clipboard.writeText(email)
     .then(function() { showToast('Email copied: ' + email, 'success'); })
-    .catch(function() { prompt('Copy this email:', email); });
+    .catch(function() {
+      // The clipboard API is often blocked inside the Zoho frame. The older
+      // select-and-copy path still works there, and it keeps the browser's own
+      // "<host> says" box — which prompt() raised — off the screen.
+      var ta = document.createElement('textarea');
+      ta.value = email; ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta);
+      showToast(ok ? 'Email copied: ' + email : 'Copy was blocked here. The email is ' + email, ok ? 'success' : 'error');
+    });
 }
 </script>
 </body>
